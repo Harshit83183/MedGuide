@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: #F6F9FC;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #1D6FF2;
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c3d0e2;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #93a8c8;
+}
+
+input[type='range'] {
+  cursor: pointer;
+}
