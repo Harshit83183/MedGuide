@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createServer as createViteServer } from 'vite';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -57,7 +57,9 @@ const server = http.createServer(async (req, res) => {
       if (!fs.existsSync(file)) { res.statusCode = 404; return res.end(JSON.stringify({ error: 'API route not found' })); }
       req.query = Object.fromEntries(url.searchParams.entries());
       req.body = ['POST','PUT','PATCH'].includes(req.method || '') ? await collectBody(req) : {};
-      const mod = await import(file + '?t=' + Date.now());
+      const moduleUrl = pathToFileURL(file);
+      moduleUrl.searchParams.set('t', String(Date.now()));
+      const mod = await import(moduleUrl.href);
       return await mod.default(req, makeRes(res));
     }
     return vite.middlewares(req, res, () => { res.statusCode = 404; res.end('Not found'); });
