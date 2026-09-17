@@ -6,6 +6,7 @@ import PageHero from '../components/PageHero';
 import Disclaimer from '../components/Disclaimer';
 import { triage, problemAdvice, RED_FLAGS, type TriageLevel } from '../../../ai-service/triage-engine';
 import { api, type SessionUser } from '../lib/api';
+import { useLanguage } from '../lib/language';
 
 interface Intake { recordId?: number; text?: string; lang?: string; days?: number; severity?: number; flags?: string[]; problemKey?: string; }
 
@@ -17,6 +18,7 @@ const CONF: Record<TriageLevel, { ring: string; bg: string; bar: string; icon: t
 
 export default function Triage({ user }: { user: SessionUser }) {
   const nav = useNavigate();
+  const { tr } = useLanguage();
   const [intake, setIntake] = useState<Intake | null>(null);
   const [counted, setCounted] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -89,13 +91,13 @@ export default function Triage({ user }: { user: SessionUser }) {
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Kyun yeh result? (Reasons)</p>
               <ul className="mt-2 space-y-1.5">
                 {result.reasons.map((r, i) => (
-                  <motion.li key={i} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.12 }} className="flex gap-2 text-sm font-medium text-slate-700"><span className="text-[#1D6FF2]">▶</span> {r}</motion.li>
+                  <motion.li key={i} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.12 }} className="flex gap-2 text-sm font-medium text-slate-700"><span className="text-[#1D6FF2]">▶</span> {tr(r)}</motion.li>
                 ))}
               </ul>
               {(intake.flags || []).length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {(intake.flags || []).map((f) => (
-                    <span key={f} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-bold text-red-700">⚠ {RED_FLAGS.find((x) => x.key === f)?.labelHi || f}</span>
+                    <span key={f} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-bold text-red-700">⚠ {tr(RED_FLAGS.find((x) => x.key === f)?.label || f)}</span>
                   ))}
                 </div>
               )}
@@ -104,14 +106,14 @@ export default function Triage({ user }: { user: SessionUser }) {
             <ul className="mt-2 space-y-2">
               {tips.map((t, i) => (
                 <motion.li key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 + i * 0.1 }} className="flex gap-2.5 rounded-2xl border border-slate-100 bg-white p-3 text-sm text-slate-700 shadow-sm">
-                  <span className={'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white ' + (result.level === 'green' ? 'bg-emerald-500' : result.level === 'yellow' ? 'bg-amber-500' : 'bg-red-600')}>{i + 1}</span> {t}
+                  <span className={'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white ' + (result.level === 'green' ? 'bg-emerald-500' : result.level === 'yellow' ? 'bg-amber-500' : 'bg-red-600')}>{i + 1}</span> {tr(t)}
                 </motion.li>
               ))}
             </ul>
             {extra.length > 0 && result.level !== 'red' && (
               <div className="mt-4 rounded-2xl bg-teal-50 p-4 ring-1 ring-teal-100">
                 <p className="text-xs font-bold uppercase tracking-wider text-teal-700">Is problem ke khaas tips</p>
-                <ul className="mt-1.5 space-y-1 text-sm text-teal-900">{extra.map((e, i) => <li key={i}>• {e}</li>)}</ul>
+                <ul className="mt-1.5 space-y-1 text-sm text-teal-900">{extra.map((e, i) => <li key={i}>• {tr(e)}</li>)}</ul>
               </div>
             )}
             <div className="mt-6 grid gap-2 sm:grid-cols-3">

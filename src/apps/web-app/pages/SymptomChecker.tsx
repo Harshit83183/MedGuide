@@ -5,7 +5,7 @@ import { MessageSquareText, ImagePlus, Mic, MicOff, X, ArrowRight, Languages, Lo
 import PageHero from '../components/PageHero';
 import Disclaimer from '../components/Disclaimer';
 import Reveal from '../components/Reveal';
-import { LANGS, type Lang } from '../lib/i18n';
+import { LANGUAGES as LANGS, useLanguage, type Lang } from '../lib/language';
 import { api, uploadFile, type SessionUser } from '../lib/api';
 
 const HINTS: Record<Lang, string> = {
@@ -13,8 +13,8 @@ const HINTS: Record<Lang, string> = {
   hi: 'उदा. मुझे 2 दिन से बुखार और बदन दर्द है...',
   hinglish: 'e.g. Mujhe 2 din se bukhar hai, gala bhi kharab hai...',
   mr: 'उदा. मला 2 दिवसांपासून ताप आहे...',
-  ta: 'e.g. Enakku 2 naal-aaga kaaichal irukku...',
-  bn: 'উদা. আমাर 2 দিন ধরে জ্বর আছে...',
+  ta: 'உதா. எனக்கு 2 நாட்களாக காய்ச்சல் மற்றும் உடல்வலி உள்ளது...',
+  bn: 'উদা. আমার ২ দিন ধরে জ্বর ও শরীর ব্যথা আছে...',
 };
 
 const LABEL: Record<Lang, string> = {
@@ -22,13 +22,13 @@ const LABEL: Record<Lang, string> = {
   hi: 'अपनी तकलीफ अपने शब्दों में बताएं',
   hinglish: 'Apni takleef apne shabdon me batayein',
   mr: 'तुमची तक्रार तुमच्या शब्दांत सांगा',
-  ta: 'Ungal problem-ai ungal vaarthaiyil sollungal',
+  ta: 'உங்கள் பிரச்சினையை உங்கள் சொற்களில் கூறுங்கள்',
   bn: 'আপনার সমস্যা নিজের ভাষায় বলুন',
 };
 
 export default function SymptomChecker({ user }: { user: SessionUser }) {
   const nav = useNavigate();
-  const [lang, setLang] = useState<Lang>('hinglish');
+  const { lang, setLang } = useLanguage();
   const [text, setText] = useState('');
   const [files, setFiles] = useState<{ url?: string; name: string; kind: 'image' | 'audio' | 'doc'; preview?: string }[]>([]);
   const [uploading, setUploading] = useState(false);

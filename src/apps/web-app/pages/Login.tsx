@@ -25,6 +25,7 @@ import { MedGuideMark, GoogleG } from '../components/MedIcons';
 import supabase, { isSupabaseConfigured } from '../lib/supabase';
 import { signInWithGoogle } from '../lib/googleAuth';
 import { saveSession, type SessionUser } from '../lib/api';
+import LanguageSelector from '../components/LanguageSelector';
 
 const PERKS = [
   { icon: Stethoscope, t: 'Smart Symptom Triage', d: 'Green / Yellow / Red — turant samjho kitni urgent hai problem.' },
@@ -391,6 +392,7 @@ export default function Login({ onLogin }: { onLogin: (u: SessionUser) => void }
 
         <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="flex items-center justify-center">
           <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl shadow-blue-100 ring-1 ring-slate-100 sm:p-8">
+            <div className="mb-4 flex justify-end"><LanguageSelector /></div>
             <div className="mb-6 flex items-center gap-3 lg:hidden">
               <MedGuideMark size={44} />
               <div><h1 className="text-2xl font-extrabold text-[#0B1F3A]">MedGuide</h1><p className="text-xs text-slate-500">Sehat ka Smart Saathi</p></div>

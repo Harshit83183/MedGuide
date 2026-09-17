@@ -5,6 +5,7 @@ import { Siren, Menu, X, LogOut, LayoutDashboard } from 'lucide-react';
 import { MedGuideMark } from './MedIcons';
 import { clearSession, type SessionUser } from '../lib/api';
 import supabase, { isSupabaseConfigured } from '../lib/supabase';
+import LanguageSelector from './LanguageSelector';
 
 const LINKS = [
   { to: '/home', label: 'Home' },
@@ -55,6 +56,7 @@ export default function Navbar({ user, onLogout }: { user: SessionUser; onLogout
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <div className="hidden xl:block"><LanguageSelector compact /></div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.94 }}
@@ -69,7 +71,7 @@ export default function Navbar({ user, onLogout }: { user: SessionUser; onLogout
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1D6FF2] to-[#0B3D91] text-sm font-bold text-white">
               {(user.name || 'M').charAt(0).toUpperCase()}
             </span>
-            <span className="max-w-[110px] truncate text-[13px] font-semibold text-slate-700">{user.name}</span>
+            <span data-no-translate="true" className="max-w-[110px] truncate text-[13px] font-semibold text-slate-700">{user.name}</span>
           </div>
           <button onClick={logout} title="Logout" className="hidden rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-red-600 md:block">
             <LogOut size={18} />
@@ -88,6 +90,7 @@ export default function Navbar({ user, onLogout }: { user: SessionUser; onLogout
             className="overflow-hidden border-t border-slate-100 bg-white lg:hidden"
           >
             <div className="space-y-1 px-4 py-3">
+              <div className="mb-2"><LanguageSelector /></div>
               {[...LINKS, { to: '/sos', label: '🚨 Emergency SOS' }, { to: '/family', label: 'Family Profiles' }].map((l) => (
                 <NavLink
                   key={l.to + l.label}
