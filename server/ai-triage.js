@@ -42,7 +42,11 @@ const TRIAGE_SCHEMA = {
             type: 'string'
           }
         },
-        required: ['name', 'relevance', 'reason']
+        required: [
+          'name',
+          'relevance',
+          'reason'
+        ]
       }
     },
     detectedSymptoms: {
@@ -181,7 +185,23 @@ emergencyAdvice should contain urgent instructions only when relevant.
 
 followUpQuestions should contain questions that materially improve triage.
 
-Respond in the same general language and simple style used by the user whenever practical. Hinglish input should normally receive simple Hinglish output.
+When follow-up answers are supplied, treat them as additional user-provided context together with the original health description.
+
+Reassess the complete case using the original complaint and every follow-up answer.
+
+Do not ignore or overwrite the original complaint.
+
+Do not repeat a follow-up question that the user already answered.
+
+After follow-up answers are supplied, ask another follow-up question only if an important unanswered point still materially affects triage.
+
+If enough information is available after the answers, set needsMoreInformation to false and return an empty followUpQuestions array.
+
+If urgency is RED, do not delay urgent guidance by asking follow-up questions. Set needsMoreInformation to false and followUpQuestions to an empty array.
+
+Respond in the same general language and simple style used by the user whenever practical.
+
+Hinglish input should normally receive simple Hinglish output.
 
 The disclaimer must clearly state that MedGuide provides informational triage and is not a medical diagnosis.
 `;
@@ -622,6 +642,32 @@ export default async function handler(req, res) {
     ? body.attachments
     : [];
 
+  const previousResult =
+    body.previousResult &&
+    typeof body.previousResult === 'object'
+      ? body.previousResult
+      : null;
+
+  const followUpAnswers = Array.isArray(
+    body.followUpAnswers
+  )
+    ? body.followUpAnswers
+        .slice(0, 8)
+        .map((item) => ({
+          question: String(
+            item?.question || ''
+          ).trim(),
+          answer: String(
+            item?.answer || ''
+          ).trim()
+        }))
+        .filter(
+          (item) =>
+            item.question &&
+            item.answer
+        )
+    : [];
+
   if (text.length < 3) {
     return res.status(400).json({
       error:
@@ -636,8 +682,25 @@ export default async function handler(req, res) {
     });
   }
 
+  const followUpSummary =
+    followUpAnswers
+      .map(
+        (item, index) =>
+          `Q${index + 1}: ${item.question}\nA${index + 1}: ${item.answer}`
+      )
+      .join('\n\n');
+
+  const combinedEmergencyText = [
+    text,
+    ...followUpAnswers.map(
+      (item) => item.answer
+    )
+  ].join(' ');
+
   const hardEmergency =
-    detectHardEmergency(text);
+    detectHardEmergency(
+      combinedEmergencyText
+    );
 
   const attachmentSummary = attachments
     .slice(0, 5)
@@ -660,8 +723,17 @@ ${SYSTEM_PROMPT}
 User language preference:
 ${language}
 
-User health description:
+Original user health description:
 ${text}
+
+Previous triage result:
+${previousResult ? JSON.stringify(previousResult) : 'None'}
+
+User answers to follow-up questions:
+${followUpSummary || 'None'}
+
+Refinement rule:
+If follow-up answers are present, generate a fresh triage result using the original description plus every supplied answer. Update urgency, summary, possible causes, symptoms, context, red flags and advice when the new information changes them. Do not merely repeat the previous result.
 
 Uploaded attachment metadata:
 ${attachmentSummary || 'None'}
@@ -733,6 +805,11 @@ Do not claim that you read, interpreted, transcribed, or diagnosed anything from
     ) {
       result =
         emergencyFallback(language);
+    }
+
+    if (result.urgency === 'red') {
+      result.followUpQuestions = [];
+      result.needsMoreInformation = false;
     }
 
     return res.status(200).json({

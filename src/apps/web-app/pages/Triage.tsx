@@ -192,6 +192,15 @@ export default function Triage({
   const [saveError, setSaveError] =
     useState('');
 
+  const [followUpAnswers, setFollowUpAnswers] =
+    useState<Record<number, string>>({});
+
+  const [refining, setRefining] =
+    useState(false);
+
+  const [refineError, setRefineError] =
+    useState('');
+
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(
@@ -236,6 +245,14 @@ export default function Triage({
 
     const result =
       triageData.result;
+
+    if (
+      result.urgency !== 'red' &&
+      result.needsMoreInformation &&
+      result.followUpQuestions.length > 0
+    ) {
+      return;
+    }
 
     const causes =
       result.possibleCauses
@@ -385,6 +402,130 @@ export default function Triage({
           'yellow'
         ? '66%'
         : '100%';
+
+  const submitFollowUpAnswers = async () => {
+    if (!triageData) {
+      return;
+    }
+
+    const questions =
+      triageData.result.followUpQuestions;
+
+    const answers = questions.map(
+      (question, index) => ({
+        question,
+        answer:
+          followUpAnswers[index]?.trim() ||
+          ''
+      })
+    );
+
+    if (
+      answers.some(
+        (item) => !item.answer
+      )
+    ) {
+      setRefineError(
+        'Kripya sabhi follow-up questions ka answer dein.'
+      );
+      return;
+    }
+
+    setRefining(true);
+    setRefineError('');
+
+    try {
+      const response = await fetch(
+        '/api/ai-triage',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+          body: JSON.stringify({
+            text: triageData.text,
+            language:
+              triageData.lang ||
+              'hinglish',
+            attachments:
+              triageData.attachments || [],
+            previousResult:
+              triageData.result,
+            followUpAnswers: answers
+          })
+        }
+      );
+
+      let data: {
+        success?: boolean;
+        provider?: string;
+        model?: string;
+        result?: TriageResult;
+        error?: string;
+      };
+
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          'Smart Triage se valid response nahi mila.'
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            'Follow-up answers analyse nahi ho sake.'
+        );
+      }
+
+      if (
+        !data.success ||
+        !data.result ||
+        !data.result.urgency
+      ) {
+        throw new Error(
+          'Updated Smart Triage response incomplete hai.'
+        );
+      }
+
+      const updated: StoredTriage = {
+        ...triageData,
+        provider:
+          data.provider ||
+          triageData.provider,
+        model:
+          data.model ||
+          triageData.model,
+        result: data.result
+      };
+
+      sessionStorage.setItem(
+        'medguide_triage_result',
+        JSON.stringify(updated)
+      );
+
+      setTriageData(updated);
+      setFollowUpAnswers({});
+      setSaved(false);
+      setSaveError('');
+
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    } catch (error) {
+      setRefineError(
+        error instanceof Error
+          ? error.message
+          : 'Follow-up answers analyse nahi ho sake.'
+      );
+    } finally {
+      setRefining(false);
+    }
+  };
 
   const startNewCheck = () => {
     sessionStorage.removeItem(
@@ -782,58 +923,105 @@ export default function Triage({
               </div>
             )}
 
-            {result.followUpQuestions.length >
-              0 && (
-              <div className="mt-5 rounded-2xl bg-violet-50 p-4 ring-1 ring-violet-100">
-                <div className="flex items-center gap-2">
-                  <CircleHelp
-                    size={19}
-                    className="text-violet-600"
-                  />
+            {result.urgency !== 'red' &&
+              result.needsMoreInformation &&
+              result.followUpQuestions.length > 0 && (
+                <div className="mt-5 rounded-2xl bg-violet-50 p-4 ring-1 ring-violet-100">
+                  <div className="flex items-center gap-2">
+                    <CircleHelp
+                      size={19}
+                      className="text-violet-600"
+                    />
 
-                  <div>
-                    <p className="text-sm font-extrabold text-[#0B1F3A]">
-                      Aur information
-                      useful hogi
-                    </p>
-
-                    {result.needsMoreInformation && (
-                      <p className="text-[11px] font-semibold text-violet-600">
-                        Smart Triage ko
-                        better context
-                        chahiye
+                    <div>
+                      <p className="text-sm font-extrabold text-[#0B1F3A]">
+                        Thodi aur information chahiye
                       </p>
+
+                      <p className="text-[11px] font-semibold text-violet-600">
+                        In questions ke answers se Smart Triage result aur accurate context ke saath update hoga
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-4">
+                    {result.followUpQuestions.map(
+                      (question, index) => (
+                        <div
+                          key={`${question}-${index}`}
+                          className="rounded-2xl bg-white p-4 ring-1 ring-violet-100"
+                        >
+                          <label
+                            htmlFor={`follow-up-${index}`}
+                            className="flex gap-2 text-sm font-bold leading-relaxed text-violet-950"
+                          >
+                            <span className="shrink-0 font-black text-violet-600">
+                              Q{index + 1}.
+                            </span>
+
+                            <span>{question}</span>
+                          </label>
+
+                          <textarea
+                            id={`follow-up-${index}`}
+                            value={
+                              followUpAnswers[index] ||
+                              ''
+                            }
+                            onChange={(event) => {
+                              const value =
+                                event.target.value;
+
+                              setFollowUpAnswers(
+                                (current) => ({
+                                  ...current,
+                                  [index]: value
+                                })
+                              );
+
+                              if (refineError) {
+                                setRefineError('');
+                              }
+                            }}
+                            disabled={refining}
+                            rows={2}
+                            placeholder="Apna answer yahan likhein..."
+                            className="mt-3 w-full resize-none rounded-xl border border-violet-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          />
+                        </div>
+                      )
                     )}
                   </div>
-                </div>
 
-                <ul className="mt-3 space-y-2">
-                  {result.followUpQuestions.map(
-                    (
-                      question,
-                      index
-                    ) => (
-                      <li
-                        key={`${question}-${index}`}
-                        className="flex gap-2 text-sm leading-relaxed text-violet-950"
-                      >
-                        <span className="font-black text-violet-600">
-                          Q
-                          {index +
-                            1}.
-                        </span>
-
-                        <span>
-                          {
-                            question
-                          }
-                        </span>
-                      </li>
-                    )
+                  {refineError && (
+                    <p className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700 ring-1 ring-red-100">
+                      {refineError}
+                    </p>
                   )}
-                </ul>
-              </div>
-            )}
+
+                  <button
+                    type="button"
+                    onClick={submitFollowUpAnswers}
+                    disabled={refining}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-3.5 text-sm font-extrabold text-white shadow-lg transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {refining ? (
+                      <>
+                        <Loader2
+                          size={17}
+                          className="animate-spin"
+                        />
+                        Answers analyse ho rahe hain...
+                      </>
+                    ) : (
+                      <>
+                        Answers Submit Karein
+                        <ArrowRight size={17} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
 
             {triageData.attachments &&
               triageData.attachments

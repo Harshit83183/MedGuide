@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   BrowserRouter,
   Routes,
@@ -13,6 +13,7 @@ import Splash from './apps/web-app/pages/Splash';
 import Home from './apps/web-app/pages/Home';
 import SymptomChecker from './apps/web-app/pages/SymptomChecker';
 import CommonProblems from './apps/web-app/pages/CommonProblems';
+import CommonProblemResult from './apps/web-app/pages/CommonProblemResult';
 import Triage from './apps/web-app/pages/Triage';
 import Clinics from './apps/web-app/pages/Clinics';
 import Medicines from './apps/web-app/pages/Medicines';
@@ -34,8 +35,11 @@ function ScrollToTop() {
     window.scrollTo({
       top: 0,
       left: 0,
-      behavior: 'instant'
+      behavior: 'auto'
     });
+
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [pathname]);
 
   return null;
@@ -58,7 +62,7 @@ function Guard({
 }: {
   user: SessionUser | null;
   onLogout: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -133,7 +137,16 @@ export default function App() {
           path="/common-problems"
           element={
             <Guard user={user} onLogout={logout}>
-              <CommonProblems user={user!} />
+              <CommonProblems />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/common-problems/result"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <CommonProblemResult />
             </Guard>
           }
         />
@@ -221,12 +234,22 @@ export default function App() {
 
         <Route
           path="/"
-          element={<Navigate to={user ? '/home' : '/login'} replace />}
+          element={
+            <Navigate
+              to={user ? '/home' : '/login'}
+              replace
+            />
+          }
         />
 
         <Route
           path="*"
-          element={<Navigate to={user ? '/home' : '/login'} replace />}
+          element={
+            <Navigate
+              to={user ? '/home' : '/login'}
+              replace
+            />
+          }
         />
       </Routes>
     </BrowserRouter>

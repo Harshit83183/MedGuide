@@ -75,7 +75,11 @@ type TriageResponse = {
   error?: string;
 };
 
-export default function SymptomChecker({ user }: { user: SessionUser }) {
+export default function SymptomChecker({
+  user
+}: {
+  user: SessionUser;
+}) {
   const nav = useNavigate();
   const { lang, setLang } = useLanguage();
 
@@ -97,25 +101,29 @@ export default function SymptomChecker({ user }: { user: SessionUser }) {
     list: FileList | null,
     kind: 'image' | 'doc'
   ) => {
-    if (!list || list.length === 0) return;
+    if (!list || list.length === 0) {
+      return;
+    }
 
     setErr('');
     setUploading(true);
 
     try {
-      for (const f of Array.from(list).slice(0, 3)) {
-        if (f.size > 3 * 1024 * 1024) {
-          setErr(`"${f.name}" 3 MB se bada hai — chhoti file chunein.`);
+      for (const file of Array.from(list).slice(0, 3)) {
+        if (file.size > 3 * 1024 * 1024) {
+          setErr(
+            `"${file.name}" 3 MB se bada hai — chhoti file chunein.`
+          );
           continue;
         }
 
         const preview =
           kind === 'image'
-            ? URL.createObjectURL(f)
+            ? URL.createObjectURL(file)
             : undefined;
 
         const url = await uploadFile(
-          f,
+          file,
           `symptoms/${user.id}`
         );
 
@@ -123,16 +131,16 @@ export default function SymptomChecker({ user }: { user: SessionUser }) {
           ...previous,
           {
             url,
-            name: f.name,
+            name: file.name,
             kind,
             preview
           }
         ]);
       }
-    } catch (e) {
+    } catch (error) {
       setErr(
-        e instanceof Error
-          ? e.message
+        error instanceof Error
+          ? error.message
           : 'Upload fail ho gaya.'
       );
     } finally {
@@ -141,23 +149,17 @@ export default function SymptomChecker({ user }: { user: SessionUser }) {
   };
 
   const blobToBase64 = (
-  blob: Blob
-): Promise<string> => {
-  return new Promise(
-    (resolve, reject) => {
-      const reader =
-        new FileReader();
+    blob: Blob
+  ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
 
       reader.onloadend = () => {
-        const result =
-          String(
-            reader.result || ''
-          );
+        const result = String(reader.result || '');
 
-        const base64 =
-          result.includes(',')
-            ? result.split(',')[1]
-            : result;
+        const base64 = result.includes(',')
+          ? result.split(',')[1]
+          : result;
 
         if (!base64) {
           reject(
@@ -179,351 +181,284 @@ export default function SymptomChecker({ user }: { user: SessionUser }) {
         );
       };
 
-      reader.readAsDataURL(
-        blob
-      );
-    }
-  );
-};
+      reader.readAsDataURL(blob);
+    });
+  };
 
-const transcribeVoice = async (
-  blob: Blob
-) => {
-  const audio =
-    await blobToBase64(blob);
+  const transcribeVoice = async (
+    blob: Blob
+  ) => {
+    const audio = await blobToBase64(blob);
 
-  const response =
-    await fetch(
+    const response = await fetch(
       '/api/voice-transcribe',
       {
         method: 'POST',
         headers: {
-          'Content-Type':
-            'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           audio,
           mimeType:
-            blob.type ||
-            'audio/webm',
+            blob.type || 'audio/webm',
           language: lang
         })
       }
     );
 
-  let data: {
-    success?: boolean;
-    transcript?: string;
-    error?: string;
-    model?: string;
-  };
+    let data: {
+      success?: boolean;
+      transcript?: string;
+      error?: string;
+      model?: string;
+    };
 
-  try {
-    data =
-      await response.json();
-  } catch {
-    throw new Error(
-      'Voice transcription se valid response nahi mila.'
-    );
-  }
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error(
+        'Voice transcription se valid response nahi mila.'
+      );
+    }
 
-  if (!response.ok) {
-    throw new Error(
-      data.error ||
-        'Voice samajh nahi aayi.'
-    );
-  }
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+          'Voice samajh nahi aayi.'
+      );
+    }
 
-  const transcript =
-    String(
+    const transcript = String(
       data.transcript || ''
     ).trim();
 
-  if (!transcript) {
-    throw new Error(
-      'Voice me clear speech detect nahi hui. Dobara clearly bolkar try karein.'
-    );
-  }
-
-  setText((previous) => {
-    const current =
-      previous.trim();
-
-    if (!current) {
-      return transcript;
+    if (!transcript) {
+      throw new Error(
+        'Voice me clear speech detect nahi hui. Dobara clearly bolkar try karein.'
+      );
     }
 
-    return `${current} ${transcript}`;
-  });
+    setText((previous) => {
+      const current = previous.trim();
 
-  return transcript;
-};
+      if (!current) {
+        return transcript;
+      }
 
-const toggleRec = async () => {
-  if (recording) {
-    mediaRef.current?.stop();
+      return `${current} ${transcript}`;
+    });
 
-    if (timerRef.current) {
-      clearInterval(
-        timerRef.current
-      );
+    return transcript;
+  };
 
-      timerRef.current =
-        null;
-    }
+  const toggleRec = async () => {
+    if (recording) {
+      mediaRef.current?.stop();
 
-    setRecording(false);
-    return;
-  }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
 
-  try {
-    setErr('');
-
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices
-        .getUserMedia
-    ) {
-      setErr(
-        'Aapka browser microphone recording support nahi karta.'
-      );
+      setRecording(false);
       return;
     }
 
-    const stream =
-      await navigator.mediaDevices.getUserMedia(
-        {
+    try {
+      setErr('');
+
+      if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+      ) {
+        setErr(
+          'Aapka browser microphone recording support nahi karta.'
+        );
+        return;
+      }
+
+      const stream =
+        await navigator.mediaDevices.getUserMedia({
           audio: true
-        }
-      );
+        });
 
-    let mimeType = '';
+      let mimeType = '';
 
-    if (
-      MediaRecorder.isTypeSupported(
-        'audio/webm;codecs=opus'
-      )
-    ) {
-      mimeType =
-        'audio/webm;codecs=opus';
-    } else if (
-      MediaRecorder.isTypeSupported(
-        'audio/webm'
-      )
-    ) {
-      mimeType =
-        'audio/webm';
-    }
-
-    const mr = mimeType
-      ? new MediaRecorder(
-          stream,
-          {
-            mimeType
-          }
+      if (
+        MediaRecorder.isTypeSupported(
+          'audio/webm;codecs=opus'
         )
-      : new MediaRecorder(
-          stream
-        );
-
-    chunksRef.current = [];
-
-    mr.ondataavailable = (
-      event
-    ) => {
-      if (event.data.size > 0) {
-        chunksRef.current.push(
-          event.data
-        );
-      }
-    };
-
-    mr.onerror = () => {
-      stream
-        .getTracks()
-        .forEach(
-          (track) =>
-            track.stop()
-        );
-
-      setRecording(false);
-      setUploading(false);
-
-      setErr(
-        'Voice recording me problem aayi. Dobara try karein.'
-      );
-    };
-
-    mr.onstop = async () => {
-      stream
-        .getTracks()
-        .forEach(
-          (track) =>
-            track.stop()
-        );
-
-      if (timerRef.current) {
-        clearInterval(
-          timerRef.current
-        );
-
-        timerRef.current =
-          null;
+      ) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (
+        MediaRecorder.isTypeSupported(
+          'audio/webm'
+        )
+      ) {
+        mimeType = 'audio/webm';
       }
 
-      const duration =
-        recSecs;
+      const recorder = mimeType
+        ? new MediaRecorder(stream, {
+            mimeType
+          })
+        : new MediaRecorder(stream);
 
-      const actualMime =
-        mr.mimeType ||
-        'audio/webm';
+      chunksRef.current = [];
 
-      const blob =
-        new Blob(
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = () => {
+        stream
+          .getTracks()
+          .forEach((track) => track.stop());
+
+        setRecording(false);
+        setUploading(false);
+
+        setErr(
+          'Voice recording me problem aayi. Dobara try karein.'
+        );
+      };
+
+      recorder.onstop = async () => {
+        stream
+          .getTracks()
+          .forEach((track) => track.stop());
+
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+
+        const duration = recSecs;
+
+        const actualMime =
+          recorder.mimeType || 'audio/webm';
+
+        const blob = new Blob(
           chunksRef.current,
           {
             type: actualMime
           }
         );
 
-      chunksRef.current = [];
+        chunksRef.current = [];
 
-      if (blob.size < 1000) {
-        setErr(
-          'Recording bahut chhoti hai. Kam se kam kuch seconds clearly bolkar try karein.'
-        );
+        if (blob.size < 1000) {
+          setErr(
+            'Recording bahut chhoti hai. Kam se kam kuch seconds clearly bolkar try karein.'
+          );
 
-        setRecSecs(0);
-        return;
-      }
+          setRecSecs(0);
+          return;
+        }
 
-      const file =
-        new File(
+        const file = new File(
           [blob],
           `voice-${Date.now()}.webm`,
           {
-            type:
-              actualMime
+            type: actualMime
           }
         );
 
-      setUploading(true);
-      setErr('');
+        setUploading(true);
+        setErr('');
 
-      try {
-        const [
-          transcript,
-          url
-        ] =
-          await Promise.all([
-            transcribeVoice(
-              blob
-            ),
-            uploadFile(
-              file,
-              `voice/${user.id}`
-            )
-          ]);
+        try {
+          const [transcript, url] =
+            await Promise.all([
+              transcribeVoice(blob),
+              uploadFile(
+                file,
+                `voice/${user.id}`
+              )
+            ]);
 
-        setFiles(
-          (previous) => [
+          setFiles((previous) => [
             ...previous,
             {
               url,
-              name:
-                `Voice note (${duration}s)`,
+              name: `Voice note (${duration}s)`,
               kind: 'audio'
             }
-          ]
-        );
+          ]);
 
-        if (
-          transcript.length < 3
-        ) {
-          throw new Error(
-            'Voice clear nahi thi. Dobara try karein.'
+          if (transcript.length < 3) {
+            throw new Error(
+              'Voice clear nahi thi. Dobara try karein.'
+            );
+          }
+        } catch (error) {
+          setErr(
+            error instanceof Error
+              ? error.message
+              : 'Voice process nahi ho saki.'
           );
+        } finally {
+          setUploading(false);
+          setRecSecs(0);
         }
-      } catch (e) {
-        setErr(
-          e instanceof Error
-            ? e.message
-            : 'Voice process nahi ho saki.'
-        );
-      } finally {
-        setUploading(false);
-        setRecSecs(0);
-      }
-    };
+      };
 
-    mediaRef.current = mr;
+      mediaRef.current = recorder;
 
-    mr.start(250);
+      recorder.start(250);
 
-    setRecording(true);
-    setRecSecs(0);
+      setRecording(true);
+      setRecSecs(0);
 
-    timerRef.current =
-      window.setInterval(
-        () => {
-          setRecSecs(
-            (seconds) => {
-              const next =
-                seconds + 1;
+      timerRef.current =
+        window.setInterval(() => {
+          setRecSecs((seconds) => {
+            const next = seconds + 1;
 
+            if (next >= 120) {
               if (
-                next >= 120
+                mediaRef.current?.state ===
+                'recording'
               ) {
-                if (
-                  mediaRef
-                    .current
-                    ?.state ===
-                  'recording'
-                ) {
-                  mediaRef.current.stop();
-                }
-
-                if (
-                  timerRef.current
-                ) {
-                  clearInterval(
-                    timerRef.current
-                  );
-
-                  timerRef.current =
-                    null;
-                }
-
-                setRecording(
-                  false
-                );
+                mediaRef.current.stop();
               }
 
-              return next;
-            }
-          );
-        },
-        1000
-      );
-  } catch (e) {
-    setRecording(false);
+              if (timerRef.current) {
+                clearInterval(
+                  timerRef.current
+                );
 
-    setErr(
-      e instanceof Error &&
-        e.name ===
-          'NotAllowedError'
-        ? 'Mic permission nahi mili. Browser me microphone permission Allow karein.'
-        : 'Mic access nahi mila. Browser permission aur microphone check karein.'
-    );
-  }
-};
+                timerRef.current = null;
+              }
+
+              setRecording(false);
+            }
+
+            return next;
+          });
+        }, 1000);
+    } catch (error) {
+      setRecording(false);
+
+      setErr(
+        error instanceof Error &&
+          error.name === 'NotAllowedError'
+          ? 'Mic permission nahi mili. Browser me microphone permission Allow karein.'
+          : 'Mic access nahi mila. Browser permission aur microphone check karein.'
+      );
+    }
+  };
 
   const removeFile = (index: number) => {
     setFiles((previous) => {
       const target = previous[index];
 
       if (target?.preview) {
-        URL.revokeObjectURL(target.preview);
+        URL.revokeObjectURL(
+          target.preview
+        );
       }
 
       return previous.filter(
@@ -574,8 +509,7 @@ const toggleRec = async () => {
         {
           method: 'POST',
           headers: {
-            'Content-Type':
-              'application/json'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             text: symptomText,
@@ -619,7 +553,11 @@ const toggleRec = async () => {
       }
 
       const storedFiles = files.map(
-        ({ url, name, kind }) => ({
+        ({
+          url,
+          name,
+          kind
+        }) => ({
           url,
           name,
           kind
@@ -647,11 +585,17 @@ const toggleRec = async () => {
         })
       );
 
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'auto'
+      });
+
       nav('/triage');
-    } catch (e) {
+    } catch (error) {
       setErr(
-        e instanceof Error
-          ? e.message
+        error instanceof Error
+          ? error.message
           : 'Smart Triage fail ho gaya. Dobara try karein.'
       );
     } finally {
@@ -684,6 +628,7 @@ const toggleRec = async () => {
             <div className="mb-5 flex flex-wrap gap-2">
               {LANGS.map((language) => (
                 <motion.button
+                  type="button"
                   key={language.code}
                   whileTap={{
                     scale: 0.94
@@ -788,7 +733,7 @@ const toggleRec = async () => {
                 multiple
                 hidden
                 onChange={(event) => {
-                  addFiles(
+                  void addFiles(
                     event.target.files,
                     'image'
                   );
@@ -804,7 +749,7 @@ const toggleRec = async () => {
                 multiple
                 hidden
                 onChange={(event) => {
-                  addFiles(
+                  void addFiles(
                     event.target.files,
                     'doc'
                   );
@@ -874,15 +819,11 @@ const toggleRec = async () => {
                             {file.kind ===
                             'audio' ? (
                               <Volume2
-                                size={
-                                  20
-                                }
+                                size={20}
                               />
                             ) : (
                               <Paperclip
-                                size={
-                                  20
-                                }
+                                size={20}
                               />
                             )}
                           </span>
@@ -932,15 +873,14 @@ const toggleRec = async () => {
 
             {files.length > 0 && (
               <p className="mt-3 rounded-xl bg-amber-50 p-3 text-[12px] font-semibold leading-relaxed text-amber-700">
-                Photo, document aur
-                voice note securely
-                upload honge. Current
-                Smart Triage abhi
+                Photo, document aur voice
+                note securely upload honge.
+                Current Smart Triage abhi
                 written description ko
-                analyse karta hai;
-                uploaded file ki medical
-                content ko analyse karne
-                ka claim nahi karega.
+                analyse karta hai; uploaded
+                file ki medical content ko
+                analyse karne ka claim nahi
+                karega.
               </p>
             )}
 
@@ -966,7 +906,7 @@ const toggleRec = async () => {
               whileTap={{
                 scale: 0.98
               }}
-              onClick={next}
+              onClick={() => void next()}
               disabled={
                 saving ||
                 uploading ||
@@ -1000,8 +940,7 @@ const toggleRec = async () => {
           <div className="space-y-4">
             <div className="rounded-3xl bg-gradient-to-br from-[#0B1F3A] to-[#0B3D91] p-5 text-white shadow-xl">
               <p className="text-sm font-bold">
-                💡 Achhe se batane ke
-                tips
+                💡 Achhe se batane ke tips
               </p>
 
               <ul className="mt-2 space-y-1.5 text-[13px] text-blue-100">
@@ -1009,17 +948,21 @@ const toggleRec = async () => {
                   • Kab se hai? (2 din /
                   1 hafta...)
                 </li>
+
                 <li>
                   • Dard kitna? (halka /
                   tez / bahut tez)
                 </li>
+
                 <li>
                   • Kya khaane/peene se
                   badhta-ghatta hai?
                 </li>
+
                 <li>
                   • Koi dawa li? Kaun si?
                 </li>
+
                 <li>
                   • Koi existing disease
                   ya treatment chal raha
