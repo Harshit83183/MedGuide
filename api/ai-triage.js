@@ -1,4 +1,14 @@
-const MODEL = process.env.OPENAI_TRIAGE_MODEL || 'gpt-5.6-luna';
+const MODELS = [
+  process.env.GEMINI_TRIAGE_MODEL,
+  'gemini-3.8-flash',
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite'
+].filter(Boolean);
+
+const UNIQUE_MODELS = [...new Set(MODELS)];
 
 const TRIAGE_SCHEMA = {
   type: 'object',
@@ -6,13 +16,13 @@ const TRIAGE_SCHEMA = {
   properties: {
     urgency: {
       type: 'string',
-      enum: ['green', 'yellow', 'red'],
+      enum: ['green', 'yellow', 'red']
     },
     urgencyTitle: {
-      type: 'string',
+      type: 'string'
     },
     summary: {
-      type: 'string',
+      type: 'string'
     },
     possibleCauses: {
       type: 'array',
@@ -22,74 +32,74 @@ const TRIAGE_SCHEMA = {
         additionalProperties: false,
         properties: {
           name: {
-            type: 'string',
+            type: 'string'
           },
           relevance: {
             type: 'string',
-            enum: ['low', 'moderate', 'strong'],
+            enum: ['low', 'moderate', 'strong']
           },
           reason: {
-            type: 'string',
-          },
+            type: 'string'
+          }
         },
-        required: ['name', 'relevance', 'reason'],
-      },
+        required: ['name', 'relevance', 'reason']
+      }
     },
     detectedSymptoms: {
       type: 'array',
       items: {
-        type: 'string',
-      },
+        type: 'string'
+      }
     },
     importantContext: {
       type: 'array',
       items: {
-        type: 'string',
-      },
+        type: 'string'
+      }
     },
     redFlags: {
       type: 'array',
       items: {
-        type: 'string',
-      },
+        type: 'string'
+      }
     },
     recommendations: {
       type: 'array',
       items: {
-        type: 'string',
-      },
+        type: 'string'
+      }
     },
     selfCare: {
       type: 'array',
       items: {
-        type: 'string',
-      },
+        type: 'string'
+      }
     },
     doctorAdvice: {
       type: 'array',
       items: {
-        type: 'string',
-      },
+        type: 'string'
+      }
     },
     emergencyAdvice: {
       type: 'array',
       items: {
-        type: 'string',
-      },
+        type: 'string'
+      }
     },
     followUpQuestions: {
       type: 'array',
       maxItems: 5,
       items: {
-        type: 'string',
-      },
+        type: 'string'
+      }
     },
     needsMoreInformation: {
-      type: 'boolean',
+      type: 'boolean'
     },
     disclaimer: {
-      type: 'string',
-    },
+      type: 'string'
+    }
   },
   required: [
     'urgency',
@@ -105,82 +115,90 @@ const TRIAGE_SCHEMA = {
     'emergencyAdvice',
     'followUpQuestions',
     'needsMoreInformation',
-    'disclaimer',
-  ],
+    'disclaimer'
+  ]
 };
 
 const SYSTEM_PROMPT = `
-You are MedGuide Smart Triage, a cautious health-information and triage assistant.
+You are MedGuide Smart Triage, a cautious health-information and medical triage assistant.
 
-Your job is to understand natural-language health descriptions written in English, Hindi, Hinglish, Marathi, Tamil, Bengali, or mixtures of these languages.
+Understand natural health descriptions written in English, Hindi, Hinglish, Marathi, Tamil, Bengali, or mixtures of these languages.
 
-Analyze the complete context rather than matching isolated keywords.
+Analyze the complete meaning and context rather than isolated keywords.
 
-You must distinguish between:
-1. symptoms the user is experiencing,
-2. a medical condition the user says they already have,
-3. a condition the user is asking whether they might have,
-4. previous medical history,
-5. current treatment,
-6. emergency warning signs.
+Separate:
+- current symptoms
+- duration and severity when provided
+- existing diagnosed conditions reported by the user
+- diseases the user only suspects
+- current treatment
+- medicines mentioned by the user
+- relevant medical history
+- emergency warning signs
 
-Never claim to diagnose a disease.
+Never claim that you diagnosed a disease.
 
-Possible causes must be presented only as symptom patterns or possibilities that may warrant clinical evaluation.
+possibleCauses must contain only reasonable possibilities based on the symptoms actually supplied. They are not diagnoses.
 
-Do not invent symptoms, history, test results, medicines, diagnoses, duration, age, sex, pregnancy status, or other facts that the user did not provide.
+Never invent symptoms, medical history, test results, diagnoses, age, sex, pregnancy status, medicines, duration, severity, or treatment.
 
-If there is not enough information, explicitly say that more information is needed and ask focused follow-up questions.
+If the information is insufficient, set needsMoreInformation to true and ask focused follow-up questions instead of guessing.
 
-Do not give a fake disease probability or percentage.
+Do not generate disease probabilities or fake percentages.
 
-Use relevance values only:
+For possibleCauses.relevance use only:
 low
 moderate
 strong
 
-Urgency rules:
+Use RED when the supplied information suggests a potentially time-critical emergency such as severe breathing difficulty, severe or crushing chest pain, unconsciousness, stroke-like symptoms, uncontrolled major bleeding, severe allergic reaction affecting breathing, severe seizure-related symptoms, severe dehydration, major trauma, suicidal intent, or another clearly dangerous presentation.
 
-RED means urgent/emergency assessment may be needed because of warning signs such as severe breathing difficulty, severe or crushing chest pain, loss of consciousness, stroke-like symptoms, uncontrolled major bleeding, severe allergic reaction affecting breathing, seizure with concerning features, severe dehydration, major trauma, suicidal intent, or another clearly time-critical presentation.
+Use YELLOW when medical assessment or clinician follow-up is appropriate, including persistent or worsening symptoms, significant severity, concerning non-emergency symptoms, or important existing diseases or treatments that increase risk.
 
-YELLOW means medical assessment or clinician follow-up is appropriate. Examples include persistent or worsening symptoms, significant severity, concerning but non-emergency symptoms, or important existing conditions/treatments that change risk.
-
-GREEN means no emergency warning sign is apparent from the information supplied and reasonable self-care/monitoring may be appropriate.
+Use GREEN only when no concerning warning sign is apparent from the supplied information and reasonable self-care and monitoring may be appropriate.
 
 A serious disease name alone does not automatically mean RED.
 
-For example:
-"I have cancer" means the user reports an existing serious condition. Do not diagnose cancer. Recommend appropriate treating-clinician/oncology follow-up and ask about current symptoms/treatment. Usually this should not be casual GREEN self-care.
+If the user says they have cancer, treat cancer as user-reported medical history. Do not claim that you diagnosed cancer. Ask about symptoms and current treatment and recommend appropriate treating-clinician or oncology follow-up.
 
-"I think I have cancer" does not establish cancer. Explain that symptoms alone cannot confirm it and recommend appropriate evaluation based on the symptoms described.
+If the user asks whether they have cancer, do not confirm cancer from symptoms alone.
 
-"I have cancer and I am on chemotherapy and now have fever" requires more cautious medical assessment because treatment may affect infection risk.
+If cancer, chemotherapy, immune suppression, or another important condition is reported together with a new concerning symptom, account for the increased medical risk.
 
-Emergency symptoms override ordinary symptom matching.
+Emergency warning signs override ordinary symptom matching.
 
-Recommendations must be specific to the information given but cautious.
+recommendations must provide useful next steps based on the supplied information.
+
+selfCare must contain only low-risk general measures appropriate to the situation.
 
 Do not prescribe prescription medicines.
 
-Do not provide medication doses unless the user has explicitly provided an existing clinician-directed plan and the response is only clarifying that plan.
+Do not provide medication doses.
 
-When self-care is reasonable, give practical low-risk steps.
+doctorAdvice should explain when professional medical assessment is appropriate.
 
-When clinician review is appropriate, explain what type of care and how urgently it should be sought.
+emergencyAdvice should contain urgent instructions only when relevant.
 
-When RED, clearly tell the user to seek urgent medical help and not to delay because of this tool.
+followUpQuestions should contain questions that materially improve triage.
 
-Respond in the same general language/style as the user's symptom description when practical. Hinglish input should normally receive simple Hinglish output.
+Respond in the same general language and simple style used by the user whenever practical. Hinglish input should normally receive simple Hinglish output.
 
-The disclaimer must make clear that this is informational triage and not a medical diagnosis.
+The disclaimer must clearly state that MedGuide provides informational triage and is not a medical diagnosis.
 `;
 
+function normalize(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function detectHardEmergency(text) {
-  const value = String(text || '').toLowerCase();
+  const value = normalize(text);
 
   const patterns = [
     'cannot breathe',
-    "can't breathe",
     'cant breathe',
     'unable to breathe',
     'severe breathing difficulty',
@@ -188,8 +206,8 @@ function detectHardEmergency(text) {
     'saans nahi aa raha',
     'saans lene me bahut dikkat',
     'saans lene mein bahut dikkat',
-    'crushing chest pain',
     'severe chest pain',
+    'crushing chest pain',
     'seene me bahut tez dard',
     'seene mein bahut tez dard',
     'unconscious',
@@ -203,133 +221,444 @@ function detectHardEmergency(text) {
     'uncontrolled bleeding',
     'khoon ruk nahi raha',
     'severe allergic reaction',
-    'tongue swelling and breathing',
-    'throat swelling and breathing',
-    'kill myself',
+    'tongue swelling breathing',
+    'throat swelling breathing',
     'want to die',
+    'kill myself',
     'suicide',
     'khud ko maar',
-    'khud ko nuksan',
+    'khud ko nuksan'
   ];
 
-  return patterns.some((pattern) => value.includes(pattern));
+  return patterns.some((pattern) =>
+    value.includes(normalize(pattern))
+  );
 }
 
 function emergencyFallback(language) {
   const hinglish =
     language === 'hinglish' ||
     language === 'hi' ||
-    !language;
+    language === 'hindi';
 
   if (hinglish) {
     return {
       urgency: 'red',
-      urgencyTitle: 'Emergency warning sign mila hai',
+      urgencyTitle: 'Emergency warning sign',
       summary:
-        'Aapke description me aisa symptom mila hai jisme urgent medical assessment ki zarurat ho sakti hai.',
+        'Aapke description me potentially serious warning sign mila hai jisme urgent medical assessment ki zarurat ho sakti hai.',
       possibleCauses: [],
       detectedSymptoms: [],
       importantContext: [],
       redFlags: [
-        'Potential emergency warning sign detected',
+        'Potential emergency warning sign detected'
       ],
       recommendations: [
-        'Abhi urgent medical help lein.',
-        'Symptom checker ke result ka wait karke treatment delay na karein.',
+        'Urgent medical help lein.',
+        'Symptom checker ke result ke liye medical care delay na karein.'
       ],
       selfCare: [],
       doctorAdvice: [],
       emergencyAdvice: [
-        'Emergency service ya nearest emergency department se turant contact karein.',
-        'Agar aap bahut unwell hain to khud drive na karein.',
-        'Possible ho to kisi trusted person ko apne saath rakhein.',
+        'Nearest emergency department ya local emergency service se turant contact karein.',
+        'Agar aap seriously unwell hain to khud drive na karein.',
+        'Possible ho to kisi trusted person ko apne saath rakhein.'
       ],
       followUpQuestions: [],
       needsMoreInformation: false,
       disclaimer:
-        'MedGuide informational triage tool hai, medical diagnosis ya emergency service ka replacement nahi.',
+        'MedGuide informational triage tool hai. Ye medical diagnosis ya emergency service ka replacement nahi hai.'
     };
   }
 
   return {
     urgency: 'red',
-    urgencyTitle: 'Emergency warning sign detected',
+    urgencyTitle: 'Emergency warning sign',
     summary:
-      'Your description contains a warning sign that may require urgent medical assessment.',
+      'Your description contains a potentially serious warning sign that may require urgent medical assessment.',
     possibleCauses: [],
     detectedSymptoms: [],
     importantContext: [],
     redFlags: [
-      'Potential emergency warning sign detected',
+      'Potential emergency warning sign detected'
     ],
     recommendations: [
-      'Seek urgent medical help now.',
-      'Do not delay emergency care while waiting for this symptom checker.',
+      'Seek urgent medical help.',
+      'Do not delay medical care while waiting for this symptom checker.'
     ],
     selfCare: [],
     doctorAdvice: [],
     emergencyAdvice: [
-      'Contact an emergency service or nearest emergency department now.',
+      'Contact your local emergency service or nearest emergency department now.',
       'Do not drive yourself if you are seriously unwell.',
-      'If possible, have a trusted person stay with you.',
+      'If possible, have a trusted person stay with you.'
     ],
     followUpQuestions: [],
     needsMoreInformation: false,
     disclaimer:
-      'MedGuide provides informational triage and is not a medical diagnosis or a replacement for emergency services.',
+      'MedGuide provides informational triage and is not a medical diagnosis or replacement for emergency services.'
+  };
+}
+
+function extractInteractionText(data) {
+  if (typeof data?.output_text === 'string') {
+    return data.output_text.trim();
+  }
+
+  if (!Array.isArray(data?.steps)) {
+    return '';
+  }
+
+  const texts = [];
+
+  for (const step of data.steps) {
+    if (!Array.isArray(step?.content)) {
+      continue;
+    }
+
+    for (const content of step.content) {
+      if (
+        content?.type === 'text' &&
+        typeof content.text === 'string'
+      ) {
+        texts.push(content.text);
+      }
+    }
+  }
+
+  return texts.join('').trim();
+}
+
+function validateResult(result) {
+  if (!result || typeof result !== 'object') {
+    return false;
+  }
+
+  if (!['green', 'yellow', 'red'].includes(result.urgency)) {
+    return false;
+  }
+
+  if (typeof result.urgencyTitle !== 'string') {
+    return false;
+  }
+
+  if (typeof result.summary !== 'string') {
+    return false;
+  }
+
+  if (!Array.isArray(result.possibleCauses)) {
+    return false;
+  }
+
+  if (!Array.isArray(result.detectedSymptoms)) {
+    return false;
+  }
+
+  if (!Array.isArray(result.importantContext)) {
+    return false;
+  }
+
+  if (!Array.isArray(result.redFlags)) {
+    return false;
+  }
+
+  if (!Array.isArray(result.recommendations)) {
+    return false;
+  }
+
+  if (!Array.isArray(result.selfCare)) {
+    return false;
+  }
+
+  if (!Array.isArray(result.doctorAdvice)) {
+    return false;
+  }
+
+  if (!Array.isArray(result.emergencyAdvice)) {
+    return false;
+  }
+
+  if (!Array.isArray(result.followUpQuestions)) {
+    return false;
+  }
+
+  if (typeof result.needsMoreInformation !== 'boolean') {
+    return false;
+  }
+
+  if (typeof result.disclaimer !== 'string') {
+    return false;
+  }
+
+  return true;
+}
+
+function isRetryable(status, code) {
+  if (status === 408 || status === 429) {
+    return true;
+  }
+
+  if (status >= 500 && status <= 599) {
+    return true;
+  }
+
+  return [
+    'rate_limit_exceeded',
+    'too_many_requests',
+    'api_error',
+    'service_unavailable',
+    'deadline_exceeded',
+    'aborted'
+  ].includes(code);
+}
+
+function isModelUnavailable(status, code) {
+  return (
+    status === 404 ||
+    code === 'not_found' ||
+    code === 'model_not_found'
+  );
+}
+
+function delayForAttempt(attempt) {
+  const base = 700 * Math.pow(2, attempt);
+  const jitter = Math.floor(Math.random() * 300);
+  return base + jitter;
+}
+
+async function callGemini(apiKey, model, input) {
+  return fetch(
+    'https://generativelanguage.googleapis.com/v1beta/interactions',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+        'Api-Revision': '2026-05-20'
+      },
+      body: JSON.stringify({
+        model,
+        input,
+        store: false,
+        response_format: {
+          type: 'text',
+          mime_type: 'application/json',
+          schema: TRIAGE_SCHEMA
+        }
+      })
+    }
+  );
+}
+
+async function requestWithFallback(apiKey, input) {
+  const attempts = [];
+  let lastStatus = 503;
+  let lastMessage =
+    'All Gemini models are temporarily unavailable.';
+
+  for (const model of UNIQUE_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let response;
+      let data;
+
+      try {
+        response = await callGemini(
+          apiKey,
+          model,
+          input
+        );
+
+        data = await response.json();
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Network request failed.';
+
+        attempts.push({
+          model,
+          attempt: attempt + 1,
+          status: 0,
+          error: message
+        });
+
+        lastStatus = 503;
+        lastMessage = message;
+
+        if (attempt === 0) {
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              delayForAttempt(attempt)
+            )
+          );
+
+          continue;
+        }
+
+        break;
+      }
+
+      if (response.ok) {
+        return {
+          response,
+          data,
+          model,
+          attempts
+        };
+      }
+
+      const code = String(
+        data?.error?.code || ''
+      );
+
+      const message =
+        data?.error?.message ||
+        `Gemini request failed with status ${response.status}.`;
+
+      attempts.push({
+        model,
+        attempt: attempt + 1,
+        status: response.status,
+        code,
+        error: message
+      });
+
+      lastStatus = response.status;
+      lastMessage = message;
+
+      if (
+        response.status === 400 ||
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        return {
+          error: true,
+          status: response.status,
+          message,
+          attempts
+        };
+      }
+
+      if (
+        isModelUnavailable(
+          response.status,
+          code
+        )
+      ) {
+        break;
+      }
+
+      if (
+        isRetryable(
+          response.status,
+          code
+        )
+      ) {
+        if (attempt === 0) {
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              delayForAttempt(attempt)
+            )
+          );
+
+          continue;
+        }
+
+        break;
+      }
+
+      return {
+        error: true,
+        status: response.status,
+        message,
+        attempts
+      };
+    }
+  }
+
+  return {
+    error: true,
+    status:
+      lastStatus >= 400 &&
+      lastStatus <= 599
+        ? lastStatus
+        : 503,
+    message: lastMessage,
+    attempts
   };
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res
-      .status(405)
-      .json({ error: 'Method not allowed' });
+    return res.status(405).json({
+      error: 'Method not allowed'
+    });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     return res.status(500).json({
       error:
-        'Missing OPENAI_API_KEY server environment variable.',
+        'Missing GEMINI_API_KEY server environment variable.'
     });
   }
 
   const body = req.body || {};
-  const text = String(body.text || '').trim();
-  const language = String(body.language || 'hinglish');
-  const attachments = Array.isArray(body.attachments)
+
+  const text = String(
+    body.text || ''
+  ).trim();
+
+  const language = String(
+    body.language || 'hinglish'
+  ).toLowerCase();
+
+  const attachments = Array.isArray(
+    body.attachments
+  )
     ? body.attachments
     : [];
 
   if (text.length < 3) {
     return res.status(400).json({
       error:
-        'Please describe the health problem in a little more detail.',
+        'Please describe your health problem in a little more detail.'
     });
   }
 
   if (text.length > 6000) {
     return res.status(400).json({
       error:
-        'Symptom description is too long. Please keep it under 6000 characters.',
+        'Symptom description is too long. Please keep it under 6000 characters.'
     });
   }
 
-  const hardEmergency = detectHardEmergency(text);
+  const hardEmergency =
+    detectHardEmergency(text);
 
   const attachmentSummary = attachments
     .slice(0, 5)
     .map((item) => {
-      const kind = String(item?.kind || 'file');
-      const name = String(item?.name || 'attachment');
+      const kind = String(
+        item?.kind || 'file'
+      );
+
+      const name = String(
+        item?.name || 'attachment'
+      );
+
       return `${kind}: ${name}`;
     })
     .join('\n');
 
-  const userInput = `
-User language preference: ${language}
+  const input = `
+${SYSTEM_PROMPT}
+
+User language preference:
+${language}
 
 User health description:
 ${text}
@@ -337,92 +666,44 @@ ${text}
 Uploaded attachment metadata:
 ${attachmentSummary || 'None'}
 
-Important:
-Attachment metadata only tells you that files exist. You have NOT been given the actual medical content of those files in this request. Do not claim to have read, interpreted, transcribed, or diagnosed anything from an attachment.
+Important attachment rule:
+Attachment metadata only indicates that files exist.
+The actual medical content of those files has not been supplied in this request.
+Do not claim that you read, interpreted, transcribed, or diagnosed anything from an attachment.
 `;
 
   try {
-    const response = await fetch(
-      'https://api.openai.com/v1/responses',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          input: [
-            {
-              role: 'system',
-              content: [
-                {
-                  type: 'input_text',
-                  text: SYSTEM_PROMPT,
-                },
-              ],
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'input_text',
-                  text: userInput,
-                },
-              ],
-            },
-          ],
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'medguide_triage',
-              strict: true,
-              schema: TRIAGE_SCHEMA,
-            },
-          },
-        }),
-      }
-    );
+    const aiResponse =
+      await requestWithFallback(
+        apiKey,
+        input
+      );
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      const message =
-        data?.error?.message ||
-        'AI triage request failed.';
-
-      return res.status(response.status).json({
-        error: message,
-      });
+    if (aiResponse.error) {
+      return res
+        .status(aiResponse.status)
+        .json({
+          error: aiResponse.message,
+          modelsTried:
+            aiResponse.attempts.map(
+              (item) => ({
+                model: item.model,
+                status: item.status
+              })
+            )
+        });
     }
 
-    let outputText = '';
-
-    if (typeof data.output_text === 'string') {
-      outputText = data.output_text;
-    }
-
-    if (!outputText && Array.isArray(data.output)) {
-      for (const item of data.output) {
-        if (!Array.isArray(item?.content)) {
-          continue;
-        }
-
-        for (const content of item.content) {
-          if (
-            content?.type === 'output_text' &&
-            typeof content.text === 'string'
-          ) {
-            outputText += content.text;
-          }
-        }
-      }
-    }
+    const outputText =
+      extractInteractionText(
+        aiResponse.data
+      );
 
     if (!outputText) {
       return res.status(502).json({
         error:
-          'AI response was empty. Please try again.',
+          'Gemini returned an empty response.',
+        model: aiResponse.model
       });
     }
 
@@ -433,24 +714,39 @@ Attachment metadata only tells you that files exist. You have NOT been given the
     } catch {
       return res.status(502).json({
         error:
-          'AI returned an invalid structured response.',
+          'Gemini returned invalid structured JSON.',
+        model: aiResponse.model
       });
     }
 
-    if (hardEmergency && result.urgency !== 'red') {
-      result = emergencyFallback(language);
+    if (!validateResult(result)) {
+      return res.status(502).json({
+        error:
+          'Gemini returned an incomplete triage response.',
+        model: aiResponse.model
+      });
+    }
+
+    if (
+      hardEmergency &&
+      result.urgency !== 'red'
+    ) {
+      result =
+        emergencyFallback(language);
     }
 
     return res.status(200).json({
       success: true,
-      result,
+      provider: 'gemini',
+      model: aiResponse.model,
+      result
     });
   } catch (error) {
     return res.status(500).json({
       error:
         error instanceof Error
           ? error.message
-          : 'AI triage failed.',
+          : 'Gemini triage failed.'
     });
   }
 }
