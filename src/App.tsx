@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation
+} from 'react-router-dom';
 import Shell from './apps/web-app/components/Shell';
 import Login from './apps/web-app/pages/Login';
 import Splash from './apps/web-app/pages/Splash';
@@ -20,15 +27,48 @@ import { handleGoogleRedirect } from './apps/web-app/lib/googleAuth';
 
 handleGoogleRedirect();
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant'
+    });
+  }, [pathname]);
+
+  return null;
+}
+
 function WelcomeGate({ user }: { user: SessionUser }) {
   const nav = useNavigate();
-  const done = useCallback(() => nav('/home', { replace: true }), [nav]);
+
+  const done = useCallback(() => {
+    nav('/home', { replace: true });
+  }, [nav]);
+
   return <Splash onDone={done} name={user.name} />;
 }
 
-function Guard({ user, onLogout, children }: { user: SessionUser | null; onLogout: () => void; children: React.ReactNode }) {
-  if (!user) return <Navigate to="/login" replace />;
-  return <Shell user={user} onLogout={onLogout}>{children}</Shell>;
+function Guard({
+  user,
+  onLogout,
+  children
+}: {
+  user: SessionUser | null;
+  onLogout: () => void;
+  children: React.ReactNode;
+}) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <Shell user={user} onLogout={onLogout}>
+      {children}
+    </Shell>
+  );
 }
 
 export default function App() {
@@ -40,29 +80,154 @@ export default function App() {
     setReady(true);
   }, []);
 
-  if (!ready) return null;
+  if (!ready) {
+    return null;
+  }
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    setUser(null);
+  };
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
+
       <Routes>
-        <Route path="/login" element={user ? <Navigate to="/welcome" replace /> : <Login onLogin={setUser} />} />
-        <Route path="/welcome" element={user ? <WelcomeGate user={user} /> : <Navigate to="/login" replace />} />
-        <Route path="/home" element={<Guard user={user} onLogout={logout}><Home user={user!} /></Guard>} />
-        <Route path="/symptom-checker" element={<Guard user={user} onLogout={logout}><SymptomChecker user={user!} /></Guard>} />
-        <Route path="/common-problems" element={<Guard user={user} onLogout={logout}><CommonProblems user={user!} /></Guard>} />
-        <Route path="/triage" element={<Guard user={user} onLogout={logout}><Triage user={user!} /></Guard>} />
-        <Route path="/clinics" element={<Guard user={user} onLogout={logout}><Clinics user={user!} /></Guard>} />
-        <Route path="/medicines" element={<Guard user={user} onLogout={logout}><Medicines /></Guard>} />
-        <Route path="/video-consult" element={<Guard user={user} onLogout={logout}><VideoConsult user={user!} /></Guard>} />
-        <Route path="/records" element={<Guard user={user} onLogout={logout}><Records user={user!} /></Guard>} />
-        <Route path="/family" element={<Guard user={user} onLogout={logout}><Family user={user!} /></Guard>} />
-        <Route path="/sos" element={<Guard user={user} onLogout={logout}><SOS user={user!} /></Guard>} />
-        <Route path="/privacy" element={<Guard user={user} onLogout={logout}><Privacy /></Guard>} />
-        <Route path="/legal" element={<Guard user={user} onLogout={logout}><Legal /></Guard>} />
-        <Route path="/" element={<Navigate to={user ? '/home' : '/login'} replace />} />
-        <Route path="*" element={<Navigate to={user ? '/home' : '/login'} replace />} />
+        <Route
+          path="/login"
+          element={
+            user
+              ? <Navigate to="/welcome" replace />
+              : <Login onLogin={setUser} />
+          }
+        />
+
+        <Route
+          path="/welcome"
+          element={
+            user
+              ? <WelcomeGate user={user} />
+              : <Navigate to="/login" replace />
+          }
+        />
+
+        <Route
+          path="/home"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <Home user={user!} />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/symptom-checker"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <SymptomChecker user={user!} />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/common-problems"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <CommonProblems user={user!} />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/triage"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <Triage user={user!} />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/clinics"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <Clinics user={user!} />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/medicines"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <Medicines />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/video-consult"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <VideoConsult user={user!} />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/records"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <Records user={user!} />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/family"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <Family user={user!} />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/sos"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <SOS user={user!} />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/privacy"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <Privacy />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/legal"
+          element={
+            <Guard user={user} onLogout={logout}>
+              <Legal />
+            </Guard>
+          }
+        />
+
+        <Route
+          path="/"
+          element={<Navigate to={user ? '/home' : '/login'} replace />}
+        />
+
+        <Route
+          path="*"
+          element={<Navigate to={user ? '/home' : '/login'} replace />}
+        />
       </Routes>
     </BrowserRouter>
   );
