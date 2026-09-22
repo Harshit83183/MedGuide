@@ -1,0 +1,7 @@
+MedGuide result page fixes
+- Overview no longer renders clinic or medicine recommendation components.
+- Medicines are only in Medicines tab; clinics are only in Clinics tab.
+- Nearby clinic backend tries Google Places (when GOOGLE_MAPS_API_KEY is configured), then multiple Overpass providers, then OpenStreetMap Nominatim fallback.
+- Nearby search radius increased to 15 km.
+- Google Maps is now a "more options" action after actual nearby cards, not the primary result.
+- Existing session result retention remains: navigating to other pages keeps the result; New Check clears it; browser refresh clears it.

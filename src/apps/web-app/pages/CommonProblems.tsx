@@ -1,3 +1,4 @@
+import MedGuideResumeResult from '../components/MedGuideResumeResult';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -281,6 +282,7 @@ export default function CommonProblems() {
   return (
     <section className="mt-10">
       <div className="mb-5 rounded-3xl bg-gradient-to-r from-teal-50 via-white to-blue-50 p-5 shadow-sm ring-1 ring-teal-100 sm:p-6">
+      <MedGuideResumeResult storageKey="medguide_common_problem_result" resultPath="/common-problems/result" />
         <div className="flex items-start gap-3">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-700 text-white shadow-lg">
             <LayoutGrid size={24} />
@@ -296,8 +298,7 @@ export default function CommonProblems() {
             </h2>
 
             <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-600">
-              Agar aapki takleef neeche di gayi common problems me se hai,
-              to problem select karke kuch simple sawalon ke jawab dein.
+              {tr('commonProblems.introduction')}
             </p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type Lang = 'en' | 'hi' | 'hinglish' | 'mr' | 'ta' | 'bn';
 
@@ -574,114 +574,35 @@ add(
 );
 
 
-add(
-  'LOCATION BASED HEALTHCARE',
-  'LOCATION-BASED HEALTHCARE',
-  'स्थान आधारित स्वास्थ्य सेवाएं',
-  'स्थानाधारित आरोग्य सेवा',
-  'இருப்பிட அடிப்படையிலான சுகாதார சேவை',
-  'অবস্থানভিত্তিক স্বাস্থ্যসেবা'
-);
-
-add(
-  'Clinics & Hospitals Near You',
-  'Clinics & Hospitals Near You',
-  'आपके नज़दीकी क्लिनिक और अस्पताल',
-  'तुमच्या जवळील दवाखाने आणि रुग्णालये',
-  'உங்களுக்கு அருகிலுள்ள மருத்துவமனைகள்',
-  'আপনার কাছাকাছি ক্লিনিক ও হাসপাতাল'
-);
-
-add(
-  'Apni current location ke aas-paas real clinics, hospitals, doctors aur emergency healthcare options Google Maps par dekhein.',
-  'Find nearby clinics, hospitals, doctors and emergency healthcare services on Google Maps.',
-  'Google Maps पर अपने आसपास के क्लिनिक, अस्पताल, डॉक्टर और आपातकालीन स्वास्थ्य सेवाएं देखें।',
-  'Google Maps वर तुमच्या जवळील दवाखाने, रुग्णालये, डॉक्टर आणि आपत्कालीन आरोग्य सेवा शोधा.',
-  'Google Maps மூலம் அருகிலுள்ள மருத்துவமனைகள், மருத்துவர்கள் மற்றும் அவசர சுகாதார சேவைகளைக் கண்டறியுங்கள்.',
-  'Google Maps-এ আপনার কাছাকাছি ক্লিনিক, হাসপাতাল, চিকিৎসক ও জরুরি স্বাস্থ্যসেবা খুঁজুন।'
-);
-
-add(
-  'JAN AUSHADHI · OFFICIAL PMBI CATALOGUE',
-  'JAN AUSHADHI · OFFICIAL PMBI CATALOGUE',
-  'जन औषधि · आधिकारिक PMBI सूची',
-  'जन औषधी · अधिकृत PMBI सूची',
-  'ஜன் ஔஷதி · அதிகாரப்பூர்வ PMBI பட்டியல்',
-  'জন ঔষধি · সরকারি PMBI তালিকা'
-);
-
-add(
-  'Save on Medicine',
-  'Save on Medicine',
-  'दवाइयों पर बचत करें',
-  'औषधांवर बचत करा',
-  'மருந்துச் செலவைக் குறைக்கவும்',
-  'ওষুধের খরচ বাঁচান'
-);
-
-add(
-  'Jan Aushadhi catalogue me medicine search karein, official MRP dekhein aur apna medicine cart banayein.',
-  'Search the Jan Aushadhi catalogue, check official MRPs and create your medicine cart.',
-  'जन औषधि सूची में दवाइयां खोजें, आधिकारिक मूल्य देखें और अपनी दवाइयों की सूची बनाएं।',
-  'जन औषधी सूचीमध्ये औषधे शोधा, अधिकृत किंमती पाहा आणि तुमची औषधांची यादी तयार करा.',
-  'ஜன் ஔஷதி பட்டியலில் மருந்துகளைத் தேடி, அதிகாரப்பூர்வ விலைகளைப் பார்த்து, உங்கள் மருந்துப் பட்டியலை உருவாக்குங்கள்.',
-  'জন ঔষধির তালিকায় ওষুধ খুঁজুন, সরকারি মূল্য দেখুন এবং আপনার ওষুধের তালিকা তৈরি করুন।'
-);
-
-add(
-  'टेलीमेडिसिन · घर बैठे डॉक्टर',
-  'TELEMEDICINE · CONSULT A DOCTOR FROM HOME',
-  'टेलीमेडिसिन · घर बैठे डॉक्टर से परामर्श',
-  'दूरवैद्यक · घरबसल्या डॉक्टरांचा सल्ला',
-  'தொலைமருத்துவம் · வீட்டிலிருந்தே மருத்துவர் ஆலோசனை',
-  'টেলিমেডিসিন · ঘরে বসে চিকিৎসকের পরামর্শ'
-);
-
-add(
-  'वीडियो परामर्श',
-  'Video Consultation',
-  'वीडियो परामर्श',
-  'व्हिडिओ सल्लामसलत',
-  'வீடியோ ஆலோசனை',
-  'ভিডিও পরামর্শ'
-);
-
-add(
-  'पंजीकृत डॉक्टरों से 10-मिनट की वीडियो मीटिंग — सब्सक्रिप्शन पैक पर बड़ी बचत। NMC टेलीमेडिसिन दिशानिर्देशों का पालन।',
-  'Schedule a 10-minute video consultation with registered doctors. Subscription packs are available. Follow applicable telemedicine guidelines.',
-  'पंजीकृत डॉक्टरों से 10 मिनट का वीडियो परामर्श लें। सदस्यता पैक उपलब्ध हैं। लागू टेलीमेडिसिन दिशानिर्देशों का पालन करें।',
-  'नोंदणीकृत डॉक्टरांशी १० मिनिटांचा व्हिडिओ सल्ला घ्या. सदस्यता पॅक उपलब्ध आहेत. लागू दूरवैद्यक मार्गदर्शक तत्त्वांचे पालन करा.',
-  'பதிவுசெய்யப்பட்ட மருத்துவர்களுடன் 10 நிமிட வீடியோ ஆலோசனை பெறுங்கள். சந்தா திட்டங்கள் உள்ளன. பொருந்தக்கூடிய தொலைமருத்துவ வழிகாட்டுதல்களைப் பின்பற்றவும்.',
-  'নিবন্ধিত চিকিৎসকদের সঙ্গে ১০ মিনিটের ভিডিও পরামর্শ নিন। সাবস্ক্রিপশন প্যাক রয়েছে। প্রযোজ্য টেলিমেডিসিন নির্দেশিকা অনুসরণ করুন।'
-);
-
-
-add(
-  'Location Based Healthcare',
-  'Location-Based Healthcare',
-  'स्थान आधारित स्वास्थ्य सेवाएं',
-  'स्थानाधारित आरोग्य सेवा',
-  'இருப்பிட அடிப்படையிலான சுகாதார சேவை',
-  'অবস্থানভিত্তিক স্বাস্থ্যসেবা'
-);
-
-add(
-  'Jan Aushadhi · Official PMBI Catalogue',
-  'Jan Aushadhi · Official PMBI Catalogue',
-  'जन औषधि · आधिकारिक PMBI सूची',
-  'जन औषधी · अधिकृत PMBI सूची',
-  'ஜன் ஔஷதி · அதிகாரப்பூர்வ PMBI பட்டியல்',
-  'জন ঔষধি · সরকারি PMBI তালিকা'
-);
-
-add(
-  'commonProblems.introduction',
-  'If your symptoms match one of the common problems below, select it and answer a few simple questions.',
-  'यदि आपकी तकलीफ नीचे दी गई सामान्य समस्याओं में से एक है, तो उसे चुनें और कुछ आसान सवालों के जवाब दें।',
-  'तुमची समस्या खाली दिलेल्या सामान्य समस्यांपैकी एक असल्यास, ती निवडा आणि काही सोप्या प्रश्नांची उत्तरे द्या.',
-  'உங்கள் அறிகுறிகள் கீழே உள்ள பொதுவான பிரச்சினைகளில் ஒன்றுடன் பொருந்தினால், அதைத் தேர்ந்தெடுத்து சில எளிய கேள்விகளுக்குப் பதிலளிக்கவும்.',
-  'আপনার উপসর্গ নিচের সাধারণ সমস্যাগুলোর কোনো একটির সঙ্গে মিলে গেলে সেটি নির্বাচন করুন এবং কয়েকটি সহজ প্রশ্নের উত্তর দিন।'
-);
+add('Translating your saved medical guidance...', 'Translating your saved medical guidance...', 'आपके पुराने स्वास्थ्य सुझावों का अनुवाद हो रहा है...', 'तुमच्या आधीच्या आरोग्य मार्गदर्शनाचे भाषांतर होत आहे...', 'உங்கள் முந்தைய மருத்துவ வழிகாட்டுதல் மொழிபெயர்க்கப்படுகிறது...', 'আপনার আগের স্বাস্থ্য পরামর্শ অনুবাদ করা হচ্ছে...');
+add('Translation is unavailable. Showing your previous result without changing its medical guidance.', 'Translation is unavailable. Showing your previous result without changing its medical guidance.', 'अनुवाद उपलब्ध नहीं है। आपके पुराने स्वास्थ्य सुझाव बिना बदलाव दिखाए जा रहे हैं।', 'भाषांतर उपलब्ध नाही. तुमचे आधीचे आरोग्य मार्गदर्शन बदल न करता दाखवत आहोत.', 'மொழிபெயர்ப்பு கிடைக்கவில்லை. முந்தைய மருத்துவ வழிகாட்டுதல் மாற்றமின்றிக் காட்டப்படுகிறது.', 'অনুবাদ উপলব্ধ নয়। আগের স্বাস্থ্য পরামর্শ অপরিবর্তিত দেখানো হচ্ছে।');
+add("Quick Health Guidance", "Quick Health Guidance", "त्वरित स्वास्थ्य मार्गदर्शन", "त्वरित आरोग्य मार्गदर्शन", "விரைவு சுகாதார வழிகாட்டுதல்", "দ্রুত স্বাস্থ্য নির্দেশনা");
+add("Aapne kya bataya", "What you reported", "आपने क्या बताया", "तुम्ही काय सांगितले", "நீங்கள் தெரிவித்தவை", "আপনি যা জানিয়েছেন");
+add("Kab se", "Duration", "कब से", "कधीपासून", "எவ்வளவு காலமாக", "কত দিন ধরে");
+add("Takleef", "Severity", "गंभीरता", "तीव्रता", "தீவிரம்", "তীব্রতা");
+add("Pattern", "Pattern", "लक्षणों का स्वरूप", "लक्षणांचे स्वरूप", "அறிகுறிகளின் தன்மை", "উপসর্গের ধরন");
+add("Aapne warning signs select kiye", "You selected warning signs", "आपने चेतावनी वाले लक्षण चुने हैं", "तुम्ही धोक्याची लक्षणे निवडली आहेत", "நீங்கள் எச்சரிக்கை அறிகுறிகளைத் தேர்ந்தெடுத்துள்ளீர்கள்", "আপনি সতর্কতামূলক লক্ষণ নির্বাচন করেছেন");
+add("✓ Aapne listed emergency warning signs me se koi select nahi kiya.", "✓ You did not select any listed emergency warning signs.", "✓ आपने सूचीबद्ध आपातकालीन चेतावनी के कोई लक्षण नहीं चुने।", "✓ तुम्ही दिलेल्या यादीतील आपत्कालीन लक्षणे निवडली नाहीत.", "✓ பட்டியலிடப்பட்ட அவசர எச்சரிக்கை அறிகுறிகள் எதையும் நீங்கள் தேர்ந்தெடுக்கவில்லை.", "✓ তালিকাভুক্ত জরুরি সতর্কতামূলক লক্ষণগুলোর কোনোটি আপনি নির্বাচন করেননি।");
+add("Simple Summary", "Simple Summary", "सरल सारांश", "सोपा सारांश", "எளிய சுருக்கம்", "সহজ সারাংশ");
+add("Iska matlab kya hai?", "What does this mean?", "इसका क्या मतलब है?", "याचा अर्थ काय?", "இதன் பொருள் என்ன?", "এর অর্থ কী?");
+add("Abhi kya karein", "What to do immediately", "अभी क्या करें", "आता लगेच काय करावे", "உடனடியாக என்ன செய்ய வேண்டும்", "এখনই কী করবেন");
+add("Ab kya karein", "What to do next", "अब क्या करें", "आता काय करावे", "அடுத்து என்ன செய்ய வேண்டும்", "এরপর কী করবেন");
+add("Ghar par kya kar sakte hain", "What you can do at home", "घर पर क्या कर सकते हैं", "घरी काय करू शकता", "வீட்டில் என்ன செய்யலாம்", "বাড়িতে কী করতে পারেন");
+add("Doctor kab dikhayein", "When to see a doctor", "डॉक्टर को कब दिखाएं", "डॉक्टरांना कधी भेटावे", "எப்போது மருத்துவரைப் பார்க்க வேண்டும்", "কখন চিকিৎসকের কাছে যাবেন");
+add("Next Step", "Next Step", "अगला कदम", "पुढील पाऊल", "அடுத்த படி", "পরবর্তী ধাপ");
+add("Aap kya karna chahenge?", "What would you like to do?", "आप क्या करना चाहेंगे?", "तुम्हाला काय करायचे आहे?", "நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?", "আপনি কী করতে চান?");
+add("Nearby Clinics", "Nearby Clinics", "नज़दीकी क्लिनिक", "जवळचे दवाखाने", "அருகிலுள்ள மருத்துவமனைகள்", "কাছাকাছি ক্লিনিক");
+add("Check Another Problem", "Check Another Problem", "दूसरी समस्या जांचें", "दुसरी समस्या तपासा", "வேறொரு பிரச்சினையைச் சரிபார்க்கவும்", "অন্য সমস্যা পরীক্ষা করুন");
+add("Ghar par care se shuru karein", "Start with home care", "घर पर देखभाल से शुरू करें", "घरगुती काळजीने सुरुवात करा", "வீட்டுப் பராமரிப்பைத் தொடங்குங்கள்", "বাড়িতে যত্ন নেওয়া শুরু করুন");
+add("Doctor se baat karna better rahega", "Consulting a doctor is advisable", "डॉक्टर से परामर्श लेना उचित रहेगा", "डॉक्टरांचा सल्ला घेणे योग्य ठरेल", "மருத்துவரிடம் ஆலோசனை பெறுவது நல்லது", "চিকিৎসকের পরামর্শ নেওয়া উচিত");
+add("Urgent medical help lein", "Seek urgent medical help", "तुरंत चिकित्सा सहायता लें", "तातडीने वैद्यकीय मदत घ्या", "உடனடி மருத்துவ உதவி பெறுங்கள்", "জরুরি চিকিৎসা সহায়তা নিন");
+add("Home Care", "Home Care", "घरेलू देखभाल", "घरगुती काळजी", "வீட்டுப் பராமரிப்பு", "বাড়িতে যত্ন");
+add("Doctor Advice", "Doctor Advice", "डॉक्टर की सलाह", "डॉक्टरांचा सल्ला", "மருத்துவர் ஆலோசனை", "চিকিৎসকের পরামর্শ");
+add("Urgent Help", "Urgent Help", "तत्काल सहायता", "तातडीची मदत", "அவசர உதவி", "জরুরি সাহায্য");
+add("Aapke diye gaye answers me abhi koi major emergency warning sign report nahi hua.", "Your answers did not report a major emergency warning sign.", "आपके उत्तरों में अभी कोई बड़ा आपातकालीन चेतावनी संकेत नहीं मिला।", "तुमच्या उत्तरांमध्ये मोठे आपत्कालीन लक्षण नोंदवले गेले नाही.", "உங்கள் பதில்களில் முக்கிய அவசர எச்சரிக்கை அறிகுறி தெரிவிக்கப்படவில்லை.", "আপনার উত্তরে বড় কোনো জরুরি সতর্কতামূলক লক্ষণ পাওয়া যায়নি।");
+add("Aapke answers ke basis par medical assessment lena useful rahega.", "Your answers suggest that medical assessment may be helpful.", "आपके उत्तरों के आधार पर चिकित्सकीय जांच उपयोगी हो सकती है।", "तुमच्या उत्तरांनुसार वैद्यकीय तपासणी उपयुक्त ठरू शकते.", "உங்கள் பதில்களின் அடிப்படையில் மருத்துவ மதிப்பீடு உதவியாக இருக்கலாம்.", "আপনার উত্তরের ভিত্তিতে চিকিৎসকের মূল্যায়ন উপকারী হতে পারে।");
+add("Aapke selected answers me aisi warning signs hain jinhe delay nahi karna chahiye.", "Your answers include warning signs that need prompt medical attention.", "आपके उत्तरों में ऐसे चेतावनी संकेत हैं जिनके लिए तुरंत चिकित्सा सहायता ज़रूरी है।", "तुमच्या उत्तरांमध्ये तातडीने वैद्यकीय मदतीची गरज असलेली लक्षणे आहेत.", "உங்கள் பதில்களில் உடனடி மருத்துவ கவனம் தேவைப்படும் எச்சரிக்கை அறிகுறிகள் உள்ளன.", "আপনার উত্তরে এমন সতর্কতামূলক লক্ষণ রয়েছে যার জন্য দ্রুত চিকিৎসা দরকার।");
+add("Symptoms ko monitor karein. Agar problem continue ya worse ho to healthcare professional se baat karein.", "Monitor symptoms and consult a healthcare professional if they persist or worsen.", "लक्षणों पर नज़र रखें। समस्या बनी रहे या बढ़े तो डॉक्टर से संपर्क करें।", "लक्षणांवर लक्ष ठेवा. त्रास कायम राहिल्यास किंवा वाढल्यास डॉक्टरांचा सल्ला घ्या.", "அறிகுறிகளைக் கண்காணிக்கவும். அவை தொடர்ந்தாலோ மோசமானாலோ மருத்துவரை அணுகவும்.", "উপসর্গ পর্যবেক্ষণ করুন। সমস্যা চলতে থাকলে বা বাড়লে চিকিৎসকের সঙ্গে যোগাযোগ করুন।");
 
 export function translateStatic(text: string, lang: Lang): string {
   if (lang === 'hinglish') return text;
@@ -699,12 +620,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('medguide_language') as Lang | null;
     return saved && LANGUAGES.some((x) => x.code === saved) ? saved : 'en';
   });
-  const setLang = useCallback((next: Lang) => {
+  const setLang = (next: Lang) => {
     localStorage.setItem('medguide_language', next);
     setLangState(next);
-  }, []);
+  };
   useEffect(() => { document.documentElement.lang = lang === 'hinglish' ? 'en' : lang; }, [lang]);
-  const value = useMemo(() => ({ lang, setLang, tr: (text: string) => translateStatic(text, lang) }), [lang, setLang]);
+  const value = useMemo(() => ({ lang, setLang, tr: (text: string) => translateStatic(text, lang) }), [lang]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 

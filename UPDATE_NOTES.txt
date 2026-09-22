@@ -1,0 +1,11 @@
+MedGuide update (based on MedGuide_Results_Location_Medicine_Fixed.zip)
+
+- Location permission is required after login and language selection; no city bypass.
+- Browser permission is checked on entry and on focus. When already granted, GPS is refreshed without prompting again; when revoked, the location gate returns.
+- Current location label uses reverse geocoding when available; coordinates are shown if the lookup fails.
+- Removed redundant location permission controls from Clinics and result recommendations.
+- Nearby clinic list uses live OpenStreetMap Overpass data, with an additional endpoint. If Overpass is unavailable, a specialty-specific Google Maps search link using the saved coordinates remains visible. This is an external live search, not an in-app verified clinic list.
+- Compact result layout now allows short Important Context alongside other cards rather than forcing an empty full-width row.
+- Browser permission cannot be made permanent by the website; the browser/user controls it. GPS accuracy and map listing completeness cannot be guaranteed.
+- Existing report retention, six-language settings and medicine safety cards are retained.
+- Full npm build was not verifiable in the offline environment; run npm ci and npm run build before deployment.

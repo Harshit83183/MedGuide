@@ -2,6 +2,9 @@ import aiTriage from '../server/ai-triage.js';
 import appointments from '../server/appointments.js';
 import clinicReviews from '../server/clinic-reviews.js';
 import clinics from '../server/clinics.js';
+import nearbyClinics from '../server/nearby-clinics.js';
+import cityLocation from '../server/city-location.js';
+import reverseLocation from '../server/reverse-location.js';
 import doctors from '../server/doctors.js';
 import familyMembers from '../server/family-members.js';
 import healthRecords from '../server/health-records.js';
@@ -20,6 +23,9 @@ const handlers = {
   appointments,
   'clinic-reviews': clinicReviews,
   clinics,
+  'nearby-clinics': nearbyClinics,
+  'city-location': cityLocation,
+  'reverse-location': reverseLocation,
   doctors,
   'family-members': familyMembers,
   'health-records': healthRecords,

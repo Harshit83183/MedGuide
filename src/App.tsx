@@ -23,8 +23,16 @@ import Family from './apps/web-app/pages/Family';
 import SOS from './apps/web-app/pages/SOS';
 import Privacy from './apps/web-app/pages/Privacy';
 import Legal from './apps/web-app/pages/Legal';
-import { loadSession, type SessionUser } from './apps/web-app/lib/api';
+import { loadSession, clearSession, type SessionUser } from './apps/web-app/lib/api';
+import supabase, { isSupabaseConfigured } from './apps/web-app/lib/supabase';
 import { handleGoogleRedirect } from './apps/web-app/lib/googleAuth';
+import LanguageOnboarding from './apps/web-app/components/LanguageOnboarding';
+import LocationOnboarding from './apps/web-app/components/LocationOnboarding';
+
+if (typeof window !== 'undefined' && window.performance.getEntriesByType('navigation').some(entry => (entry as PerformanceNavigationTiming).type === 'reload')) {
+  sessionStorage.removeItem('medguide_triage_result');
+  sessionStorage.removeItem('medguide_common_problem_result');
+}
 
 handleGoogleRedirect();
 
@@ -43,6 +51,13 @@ function ScrollToTop() {
   }, [pathname]);
 
   return null;
+}
+
+function ResumeOrStart({ storageKey, resultPath, children }: { storageKey: string; resultPath: string; children: ReactNode }) {
+  try {
+    if (sessionStorage.getItem(storageKey)) return <Navigate to={resultPath} replace />;
+  } catch { /* Storage unavailable */ }
+  return <>{children}</>;
 }
 
 function WelcomeGate({ user }: { user: SessionUser }) {
@@ -80,8 +95,45 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setUser(loadSession());
-    setReady(true);
+    let active = true;
+
+    async function restoreAuthenticatedUser() {
+      const saved = loadSession();
+      if (!saved) {
+        if (active) setReady(true);
+        return;
+      }
+
+      if (saved.provider === 'demo' || saved.provider === 'phone') {
+        if (active) {
+          setUser(null);
+          setReady(true);
+        }
+        return;
+      }
+
+      if (!isSupabaseConfigured) {
+        if (active) {
+          setUser(null);
+          setReady(true);
+        }
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        const authUser = data.session?.user;
+        const expectedId = (saved.provider === 'google' ? 'g-' : 'a-') + authUser?.id.slice(0, 12);
+        if (active) setUser(!error && authUser && expectedId === saved.id ? saved : null);
+      } catch {
+        if (active) setUser(null);
+      } finally {
+        if (active) setReady(true);
+      }
+    }
+
+    void restoreAuthenticatedUser();
+    return () => { active = false; };
   }, []);
 
   if (!ready) {
@@ -89,6 +141,7 @@ export default function App() {
   }
 
   const logout = () => {
+    clearSession();
     setUser(null);
   };
 
@@ -96,6 +149,8 @@ export default function App() {
     <BrowserRouter>
       <ScrollToTop />
 
+      {user && <LanguageOnboarding user={user} />}
+      {user && <LocationOnboarding user={user} />}
       <Routes>
         <Route
           path="/login"
@@ -128,7 +183,7 @@ export default function App() {
           path="/symptom-checker"
           element={
             <Guard user={user} onLogout={logout}>
-              <SymptomChecker user={user!} />
+              <ResumeOrStart storageKey="medguide_triage_result" resultPath="/triage"><SymptomChecker user={user!} /></ResumeOrStart>
             </Guard>
           }
         />
@@ -137,7 +192,7 @@ export default function App() {
           path="/common-problems"
           element={
             <Guard user={user} onLogout={logout}>
-              <CommonProblems />
+              <ResumeOrStart storageKey="medguide_common_problem_result" resultPath="/common-problems/result"><CommonProblems /></ResumeOrStart>
             </Guard>
           }
         />
@@ -146,7 +201,7 @@ export default function App() {
           path="/common-problems/result"
           element={
             <Guard user={user} onLogout={logout}>
-              <CommonProblemResult />
+              <CommonProblemResult user={user!} />
             </Guard>
           }
         />

@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import PageHero from '../components/PageHero';
 import Disclaimer from '../components/Disclaimer';
+import RecommendedCare from '../components/RecommendedCare';
+import ReportTabs, { type ReportTab } from '../components/ReportTabs';
 import { api, type SessionUser } from '../lib/api';
 
 type TriageLevel = 'green' | 'yellow' | 'red';
@@ -178,6 +180,7 @@ export default function Triage({
 }: {
   user: SessionUser;
 }) {
+  const [activeTab, setActiveTab] = useState<ReportTab>('overview');
   const nav = useNavigate();
 
   const [triageData, setTriageData] =
@@ -188,6 +191,8 @@ export default function Triage({
 
   const [saved, setSaved] =
     useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   const [saveError, setSaveError] =
     useState('');
@@ -238,7 +243,7 @@ export default function Triage({
   useEffect(() => {
     if (
       !triageData ||
-      saved
+      saved || saving || saveFailed
     ) {
       return;
     }
@@ -283,6 +288,7 @@ export default function Triage({
       .filter(Boolean)
       .join(' || ');
 
+    setSaving(true);
     api('/api/health-records', {
       method: 'POST',
       body: {
@@ -324,9 +330,12 @@ export default function Triage({
     })
       .then(() => {
         setSaved(true);
+        setSaving(false);
+        setSaveError('');
       })
       .catch((error) => {
-        setSaved(true);
+        setSaving(false);
+        setSaveFailed(true);
 
         setSaveError(
           error instanceof Error
@@ -337,6 +346,8 @@ export default function Triage({
   }, [
     triageData,
     saved,
+    saving,
+    saveFailed,
     user.id
   ]);
 
@@ -509,6 +520,7 @@ export default function Triage({
       setTriageData(updated);
       setFollowUpAnswers({});
       setSaved(false);
+      setSaveFailed(false);
       setSaveError('');
 
       window.scrollTo({
@@ -559,7 +571,10 @@ export default function Triage({
         }
       />
 
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto w-full max-w-[1560px]">
+        <ReportTabs active={activeTab} onChange={setActiveTab} />
+        {result.urgency === 'red' && <div role="alert" className="mb-4 rounded-xl bg-red-50 p-4 font-bold text-red-900">Emergency warning: seek immediate medical care. Call 112 in India. Do not wait for an appointment.</div>}
+        {(activeTab === 'overview' || activeTab === 'care') && <div className="grid items-start gap-4">
         <motion.div
           initial={{
             opacity: 0,
@@ -658,12 +673,13 @@ export default function Triage({
             </div>
           </div>
 
-          <div className="p-6 sm:p-8">
-            <p className="text-[15px] font-medium leading-relaxed text-slate-600">
+          <div className="grid grid-cols-1 auto-rows-min grid-flow-row-dense gap-4 p-4 sm:p-5 lg:grid-cols-2">
+            <div className={activeTab === 'overview' ? 'contents' : 'hidden'}>
+            <p className="col-span-full text-[14px] font-medium leading-relaxed text-slate-600">
               {config.desc}
             </p>
 
-            <div className="mt-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+            <div className="col-span-full rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200">
               <div className="flex items-center gap-2">
                 <Brain
                   size={19}
@@ -682,7 +698,7 @@ export default function Triage({
 
             {result.detectedSymptoms.length >
               0 && (
-              <div className="mt-5">
+              <div className="col-span-full">
                 <p className="text-sm font-extrabold text-[#0B1F3A]">
                   Detected Symptoms
                 </p>
@@ -707,7 +723,7 @@ export default function Triage({
 
             {result.importantContext.length >
               0 && (
-              <div className="mt-5">
+              <div className="min-w-0 col-span-full">
                 <ListSection
                   title="Important Context"
                   icon={
@@ -724,7 +740,7 @@ export default function Triage({
               </div>
             )}
 
-            <div className="mt-6">
+            <div className="min-w-0 col-span-full">
               <div className="mb-3 flex items-center gap-2">
                 <Stethoscope
                   size={20}
@@ -746,7 +762,7 @@ export default function Triage({
 
               {result.possibleCauses
                 .length > 0 ? (
-                <div className="space-y-3">
+                <div className={`grid gap-3 ${result.possibleCauses.length > 1 ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"}`}>
                   {result.possibleCauses.map(
                     (
                       cause,
@@ -769,7 +785,7 @@ export default function Triage({
                         }}
                         className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4"
                       >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex flex-col gap-2">
                           <div className="min-w-0">
                             <p className="font-extrabold text-[#0B1F3A]">
                               {
@@ -826,9 +842,11 @@ export default function Triage({
               )}
             </div>
 
+            </div>
+            <div className={activeTab === 'care' ? 'contents' : 'hidden'}>
             {result.redFlags.length >
               0 && (
-              <div className="mt-5">
+              <div className="min-w-0">
                 <ListSection
                   title="Warning Signs"
                   icon={
@@ -847,7 +865,7 @@ export default function Triage({
 
             {result.recommendations.length >
               0 && (
-              <div className="mt-5">
+              <div className="min-w-0">
                 <ListSection
                   title="Recommended Next Steps"
                   icon={
@@ -887,7 +905,7 @@ export default function Triage({
 
             {result.doctorAdvice.length >
               0 && (
-              <div className="mt-5">
+              <div className="min-w-0">
                 <ListSection
                   title="Doctor Advice"
                   icon={
@@ -906,7 +924,7 @@ export default function Triage({
 
             {result.emergencyAdvice.length >
               0 && (
-              <div className="mt-5">
+              <div className="min-w-0">
                 <ListSection
                   title="Emergency Advice"
                   icon={
@@ -926,7 +944,7 @@ export default function Triage({
             {result.urgency !== 'red' &&
               result.needsMoreInformation &&
               result.followUpQuestions.length > 0 && (
-                <div className="mt-5 rounded-2xl bg-violet-50 p-4 ring-1 ring-violet-100">
+                <div className="col-span-full rounded-2xl bg-violet-50 p-4 ring-1 ring-violet-100">
                   <div className="flex items-center gap-2">
                     <CircleHelp
                       size={19}
@@ -1023,10 +1041,11 @@ export default function Triage({
                 </div>
               )}
 
+            </div>
             {triageData.attachments &&
               triageData.attachments
                 .length > 0 && (
-                <div className="mt-5 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                <div className="col-span-full rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
                   <p className="text-xs font-bold uppercase tracking-wider text-amber-700">
                     Uploaded Files
                   </p>
@@ -1060,7 +1079,7 @@ export default function Triage({
                 </div>
               )}
 
-            <div className="mt-5 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+            <div className="col-span-full rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200">
               <div className="flex gap-3">
                 <ShieldCheck
                   size={20}
@@ -1074,15 +1093,15 @@ export default function Triage({
             </div>
 
             {saveError && (
-              <p className="mt-4 rounded-xl bg-amber-50 p-3 text-center text-xs font-semibold text-amber-700">
+              <p className="col-span-full rounded-xl bg-amber-50 p-3 text-center text-xs font-semibold text-amber-700">
                 Triage result dikh
                 raha hai, lekin health
                 record save nahi ho
-                saka: {saveError}
+                saka: {saveError} <button type="button" className="ml-2 underline font-bold" onClick={() => { setSaveError(''); setSaveFailed(false); }}>Retry saving</button>
               </p>
             )}
 
-            <div className="mt-6 grid gap-2 sm:grid-cols-3">
+            <div className="col-span-full grid gap-2 sm:grid-cols-3">
               {result.urgency ===
               'red' ? (
                 <>
@@ -1106,27 +1125,11 @@ export default function Triage({
                     />
                   </Link>
 
-                  <Link
-                    to="/clinics"
-                    className="flex items-center justify-center gap-1.5 rounded-2xl bg-slate-100 py-3.5 text-sm font-bold text-slate-700"
-                  >
-                    <Hospital
-                      size={16}
-                    />
-                    Find Clinic
-                  </Link>
+
                 </>
               ) : (
                 <>
-                  <Link
-                    to="/clinics"
-                    className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-[#1D6FF2] to-[#0B3D91] py-3.5 text-sm font-bold text-white shadow-lg"
-                  >
-                    <Hospital
-                      size={16}
-                    />
-                    Book Clinic
-                  </Link>
+
 
                   <Link
                     to="/video-consult"
@@ -1156,7 +1159,7 @@ export default function Triage({
               onClick={
                 startNewCheck
               }
-              className="mt-4 flex w-full items-center justify-center gap-1.5 py-2 text-[13px] font-bold text-slate-400 hover:text-[#0B3D91]"
+              className="col-span-full flex w-full items-center justify-center gap-1.5 py-2 text-[13px] font-bold text-slate-400 hover:text-[#0B3D91]"
             >
               <RotateCcw
                 size={14}
@@ -1166,6 +1169,10 @@ export default function Triage({
             </button>
           </div>
         </motion.div>
+
+        </div>}
+        <div role="tabpanel" className={activeTab === 'clinics' ? '' : 'hidden'}><RecommendedCare assessment={result} sourceText={triageData.text} view="clinics" /></div>
+        <div role="tabpanel" className={activeTab === 'medicines' ? '' : 'hidden'}><RecommendedCare assessment={result} sourceText={triageData.text} view="medicines" /></div>
 
         <div className="mt-4">
           <Disclaimer />

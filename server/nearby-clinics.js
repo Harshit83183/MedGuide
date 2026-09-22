@@ -1,5 +1,8 @@
-const OVERPASS_URL =
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter';
+const OVERPASS_URLS = [
+  'https://overpass.private.coffee/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass-api.de/api/interpreter'
+];
 
 const cache = new Map();
 
@@ -205,7 +208,7 @@ const createQuery = (
     `${box.south},${box.west},${box.north},${box.east}`;
 
   return `
-[out:json][timeout:10];
+[out:json][timeout:20];
 (
   nwr["amenity"~"clinic|hospital|doctors|dentist"](${bbox});
   nwr["healthcare"~"clinic|doctor|dentist"](${bbox});
@@ -214,67 +217,92 @@ out center tags qt;
 `;
 };
 
-const requestOverpass = async (
-  query
-) => {
-  const controller =
-    new AbortController();
-
-  const timer =
-    setTimeout(() => {
-      controller.abort();
-    }, 15000);
-
-  try {
-    const response =
-      await fetch(
-        OVERPASS_URL,
-        {
-          method: 'POST',
-          headers: {
-            Accept:
-              'application/json',
-            'Content-Type':
-              'application/x-www-form-urlencoded;charset=UTF-8',
-            'User-Agent':
-              USER_AGENT
-          },
-          body:
-            'data=' +
-            encodeURIComponent(
-              query
-            ),
-          signal:
-            controller.signal
-        }
-      );
-
-    if (!response.ok) {
-      const body =
-        await response.text();
-
-      throw new Error(
-        `Overpass ${response.status}: ${body.slice(0, 200)}`
-      );
-    }
-
-    const data =
-      await response.json();
-
-    if (
-      !Array.isArray(
-        data.elements
-      )
-    ) {
-      throw new Error(
-        'Invalid nearby clinic response'
-      );
-    }
-
-    return data;
-  } finally {
-    clearTimeout(timer);
+const requestOverpass = async (query) => {
+  let lastError;
+  for (const endpoint of OVERPASS_URLS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 18000);
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'User-Agent': USER_AGENT },
+        body: 'data=' + encodeURIComponent(query),
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error(`Overpass ${response.status}`);
+      const data = await response.json();
+      if (!Array.isArray(data.elements)) throw new Error('Invalid Overpass response');
+      return data;
+    } catch (error) { lastError = error; }
+    finally { clearTimeout(timer); }
   }
+  throw lastError || new Error('Nearby map data unavailable');
+};
+
+
+const requestNominatim = async (lat, lon, radiusMeters) => {
+  const box = getBoundingBox(lat, lon, radiusMeters);
+  const viewbox = `${box.west},${box.north},${box.east},${box.south}`;
+  const terms = ['hospital', 'clinic', 'doctor'];
+  const found = [];
+
+  for (const term of terms) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 9000);
+    try {
+      const params = new URLSearchParams({
+        q: term,
+        format: 'jsonv2',
+        limit: '12',
+        addressdetails: '1',
+        extratags: '1',
+        namedetails: '1',
+        bounded: '1',
+        viewbox
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { Accept: 'application/json', 'User-Agent': USER_AGENT }
+      });
+      if (!response.ok) continue;
+      const rows = await response.json();
+      if (Array.isArray(rows)) found.push(...rows);
+    } catch { /* try the next term */ }
+    finally { clearTimeout(timer); }
+  }
+
+  const unique = new Map();
+  for (const row of found) {
+    const rlat = Number(row.lat);
+    const rlon = Number(row.lon);
+    if (!Number.isFinite(rlat) || !Number.isFinite(rlon)) continue;
+    const distance = distanceKm(lat, lon, rlat, rlon);
+    if (distance > radiusMeters / 1000) continue;
+    const name = row.namedetails?.name || String(row.display_name || '').split(',')[0]?.trim();
+    if (!name) continue;
+    const kind = String(row.type || row.category || '').toLowerCase();
+    const type = kind.includes('hospital') ? 'Hospital' : kind.includes('doctor') ? 'Doctor' : 'Clinic';
+    const extra = row.extratags || {};
+    const specialties = getSpecialties(extra);
+    const clinic = {
+      id: `nominatim-${row.osm_type || 'place'}-${row.osm_id || row.place_id}`,
+      name,
+      type,
+      address: row.display_name || '',
+      city: row.address?.city || row.address?.town || row.address?.village || row.address?.county || '',
+      distance_km: Number(distance.toFixed(2)),
+      latitude: rlat,
+      longitude: rlon,
+      phone: extra.phone || extra['contact:phone'] || '',
+      website: extra.website || extra['contact:website'] || '',
+      opening_hours: extra.opening_hours || '',
+      emergency: extra.emergency === 'yes' || extra.emergency === '24_7',
+      specialties,
+      source: 'OpenStreetMap Nominatim'
+    };
+    const key = `${name.toLowerCase()}|${rlat.toFixed(4)}|${rlon.toFixed(4)}`;
+    if (!unique.has(key)) unique.set(key, clinic);
+  }
+  return [...unique.values()].sort((a,b) => a.distance_km - b.distance_km);
 };
 
 export default async function handler(
@@ -348,6 +376,31 @@ export default async function handler(
   }
 
   try {
+    const placesKey = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_PLACES_API_KEY;
+    if (placesKey) {
+      try {
+        const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': placesKey, 'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.nationalPhoneNumber,places.websiteUri' },
+          body: JSON.stringify({ includedTypes: ['hospital', 'doctor'], maxResultCount: 20, rankPreference: 'DISTANCE', locationRestriction: { circle: { center: { latitude: lat, longitude: lon }, radius: Math.min(radius, 10000) } } })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const clinics = (data.places || []).filter(place => place.displayName?.text && place.location).map(place => ({
+            id: place.id, name: place.displayName.text, address: place.formattedAddress || '',
+            type: place.primaryType === 'hospital' ? 'Hospital' : 'Doctor',
+            specialties: [], latitude: place.location.latitude, longitude: place.location.longitude,
+            distance_km: distanceKm(lat, lon, place.location.latitude, place.location.longitude),
+            phone: place.nationalPhoneNumber || '', website: place.websiteUri || '', source: 'Google Places'
+          })).sort((a,b) => a.distance_km - b.distance_km);
+          if (clinics.length) {
+            const result = { source: 'Google Places', count: clinics.length, clinics };
+            cache.set(cacheKey, { time: Date.now(), data: result });
+            return res.status(200).json(result);
+          }
+        } else console.warn('Google Places:', response.status);
+      } catch (placesError) { console.warn('Google Places unavailable:', placesError.message); }
+    }
     const query =
       createQuery(
         lat,
@@ -529,16 +582,17 @@ export default async function handler(
       .status(200)
       .json(result);
   } catch (error) {
-    console.error(
-      'Nearby clinics:',
-      error
-    );
-
-    return res
-      .status(503)
-      .json({
-        error:
-          'Nearby clinic service abhi available nahi hai.'
-      });
+    console.error('Overpass nearby clinics:', error);
+    try {
+      const clinics = await requestNominatim(lat, lon, radius);
+      if (clinics.length) {
+        const result = { source: 'OpenStreetMap Nominatim', attribution: '© OpenStreetMap contributors', radius_km: radius / 1000, count: clinics.length, clinics };
+        cache.set(cacheKey, { time: Date.now(), data: result });
+        return res.status(200).json(result);
+      }
+    } catch (fallbackError) {
+      console.error('Nominatim nearby clinics:', fallbackError);
+    }
+    return res.status(503).json({ error: 'Nearby clinic providers are temporarily unavailable.' });
   }
 }

@@ -5,7 +5,6 @@ import { Siren, Menu, X, LogOut, LayoutDashboard } from 'lucide-react';
 import { MedGuideMark } from './MedIcons';
 import { clearSession, type SessionUser } from '../lib/api';
 import supabase, { isSupabaseConfigured } from '../lib/supabase';
-import LanguageSelector from './LanguageSelector';
 
 const LINKS = [
   { to: '/home', label: 'Home' },
@@ -56,7 +55,6 @@ export default function Navbar({ user, onLogout }: { user: SessionUser; onLogout
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <div className="hidden xl:block"><LanguageSelector compact /></div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.94 }}
@@ -90,7 +88,6 @@ export default function Navbar({ user, onLogout }: { user: SessionUser; onLogout
             className="overflow-hidden border-t border-slate-100 bg-white lg:hidden"
           >
             <div className="space-y-1 px-4 py-3">
-              <div className="mb-2"><LanguageSelector /></div>
               {[...LINKS, { to: '/sos', label: '🚨 Emergency SOS' }, { to: '/family', label: 'Family Profiles' }].map((l) => (
                 <NavLink
                   key={l.to + l.label}

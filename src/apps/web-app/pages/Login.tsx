@@ -25,7 +25,6 @@ import { MedGuideMark, GoogleG } from '../components/MedIcons';
 import supabase, { isSupabaseConfigured } from '../lib/supabase';
 import { signInWithGoogle } from '../lib/googleAuth';
 import { saveSession, type SessionUser } from '../lib/api';
-import LanguageSelector from '../components/LanguageSelector';
 
 const PERKS = [
   {
@@ -55,7 +54,7 @@ export default function Login({
 }) {
   const nav = useNavigate();
 
-  const [passwordMode, setPasswordMode] = useState<PasswordMode>('signup');
+  const [passwordMode, setPasswordMode] = useState<PasswordMode>('signin');
   const [credentialType, setCredentialType] = useState<CredentialType>('email');
   const [name, setName] = useState('');
   const [identifier, setIdentifier] = useState('');
@@ -681,9 +680,6 @@ export default function Login({
           className="flex items-center justify-center"
         >
           <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl shadow-blue-100 ring-1 ring-slate-100 sm:p-8">
-            <div className="mb-4 flex justify-end">
-              <LanguageSelector />
-            </div>
 
             <div className="mb-6 flex items-center gap-3 lg:hidden">
               <MedGuideMark size={44} />

@@ -1,3 +1,4 @@
+import MedGuideResumeResult from '../components/MedGuideResumeResult';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +9,6 @@ import {
   MicOff,
   X,
   ArrowRight,
-  Languages,
   Loader2,
   Paperclip,
   Volume2
@@ -17,7 +17,6 @@ import PageHero from '../components/PageHero';
 import Disclaimer from '../components/Disclaimer';
 import Reveal from '../components/Reveal';
 import {
-  LANGUAGES as LANGS,
   useLanguage,
   type Lang
 } from '../lib/language';
@@ -308,7 +307,7 @@ export default function SymptomChecker({
   user: SessionUser;
 }) {
   const nav = useNavigate();
-  const { lang, setLang, tr } = useLanguage();
+  const { lang, tr } = useLanguage();
 
   const [text, setText] = useState('');
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -796,6 +795,7 @@ export default function SymptomChecker({
 
   return (
     <div>
+      <MedGuideResumeResult storageKey="medguide_triage_result" resultPath="/triage" />
       <PageHero
         icon={<MessageSquareText size={28} />}
         kicker={tr('Step 1 · AI Smart Intake')}
@@ -808,35 +808,6 @@ export default function SymptomChecker({
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <Reveal>
           <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-7">
-            <p className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-slate-600">
-              <Languages
-                size={15}
-                className="text-[#1D6FF2]"
-              />
-              {tr('Apni bhasha chunein')}
-            </p>
-
-            <div className="mb-5 flex flex-wrap gap-2">
-              {LANGS.map((language) => (
-                <motion.button
-                  type="button"
-                  key={language.code}
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() =>
-                    setLang(language.code)
-                  }
-                  className={
-                    'rounded-full px-4 py-2 text-[13px] font-bold transition ' +
-                    (lang === language.code
-                      ? 'bg-[#0B3D91] text-white shadow-lg shadow-blue-200'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200')
-                  }
-                >
-                  {language.native}
-                </motion.button>
-              ))}
-            </div>
-
             <label className="mb-1.5 block text-[13px] font-bold text-slate-600">
               {LABEL[lang]}
             </label>
