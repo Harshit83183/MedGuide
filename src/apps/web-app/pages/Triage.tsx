@@ -250,14 +250,7 @@ export default function Triage({
 
     const result =
       triageData.result;
-
-    if (
-      result.urgency !== 'red' &&
-      result.needsMoreInformation &&
-      result.followUpQuestions.length > 0
-    ) {
-      return;
-    }
+    
 
     const causes =
       result.possibleCauses
@@ -289,6 +282,7 @@ export default function Triage({
       .join(' || ');
 
     setSaving(true);
+    console.log('Saving symptom result to My Records...');
     api('/api/health-records', {
       method: 'POST',
       body: {
