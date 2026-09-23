@@ -26,7 +26,8 @@ import Legal from './apps/web-app/pages/Legal';
 import { loadSession, clearSession, type SessionUser } from './apps/web-app/lib/api';
 import supabase, { isSupabaseConfigured } from './apps/web-app/lib/supabase';
 import { handleGoogleRedirect } from './apps/web-app/lib/googleAuth';
-import LanguageOnboarding from './apps/web-app/components/LanguageOnboarding';
+import FirstLanguageGate from './apps/web-app/components/FirstLanguageGate';
+import { useLanguage } from './apps/web-app/lib/language';
 import LocationOnboarding from './apps/web-app/components/LocationOnboarding';
 
 if (typeof window !== 'undefined' && window.performance.getEntriesByType('navigation').some(entry => (entry as PerformanceNavigationTiming).type === 'reload')) {
@@ -93,6 +94,9 @@ function Guard({
 export default function App() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [ready, setReady] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
+  const [languageDone, setLanguageDone] = useState(() => !!localStorage.getItem('medguide_language_chosen'));
+  const { setLang } = useLanguage();
 
   useEffect(() => {
     let active = true;
@@ -136,9 +140,19 @@ export default function App() {
     return () => { active = false; };
   }, []);
 
-  if (!ready) {
-    return null;
+  if (!introDone) {
+    return <Splash name="Friend" onDone={() => setIntroDone(true)} />;
   }
+
+  if (!languageDone) {
+    return <FirstLanguageGate onDone={selected => {
+      setLang(selected);
+      localStorage.setItem('medguide_language_chosen', '1');
+      setLanguageDone(true);
+    }} />;
+  }
+
+  if (!ready) return null;
 
   const logout = () => {
     clearSession();
@@ -149,14 +163,14 @@ export default function App() {
     <BrowserRouter>
       <ScrollToTop />
 
-      {user && <LanguageOnboarding user={user} />}
+
       {user && <LocationOnboarding user={user} />}
       <Routes>
         <Route
           path="/login"
           element={
             user
-              ? <Navigate to="/welcome" replace />
+              ? <Navigate to="/home" replace />
               : <Login onLogin={setUser} />
           }
         />
@@ -165,7 +179,7 @@ export default function App() {
           path="/welcome"
           element={
             user
-              ? <WelcomeGate user={user} />
+              ? <Navigate to="/home" replace />
               : <Navigate to="/login" replace />
           }
         />

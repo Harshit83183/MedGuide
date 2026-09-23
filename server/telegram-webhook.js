@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   const chatId = req.body?.message?.chat?.id;
   const message = String(req.body?.message?.text || "");
 
-  const code = /^\/start ([a-f0-9]{36})$/.exec(message)?.[1];
+  const code = /^\/start(?:@[A-Za-z0-9_]+)?\s+([a-f0-9]{36})$/i.exec(message.trim())?.[1];
 
   if (!chatId || !code) {
     return res.status(200).json({

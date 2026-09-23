@@ -104,8 +104,6 @@ export default async function handler(req, res) {
         .update({
           telegram_link_code: code,
           telegram_link_expires_at: expiresAt,
-          telegram_chat_id: null,
-          telegram_connected_at: null
         })
         .eq("id", id)
         .eq("user_id", user_id);
