@@ -18,6 +18,9 @@ import upload from '../server/upload.js';
 import videoConsults from '../server/video-consults.js';
 import voiceTranscribe from '../server/voice-transcribe.js';
 
+import sosLocation from '../server/sos-location.js';
+import telegramWebhook from '../server/telegram-webhook.js';
+
 const handlers = {
   'ai-triage': aiTriage,
   appointments,
@@ -31,6 +34,8 @@ const handlers = {
   'health-records': healthRecords,
   medicines,
   'pharmacy-stock': pharmacyStock,
+  'sos-location': sosLocation,
+  'telegram-webhook': telegramWebhook,
   'sos-alerts': sosAlerts,
   'sos-contacts': sosContacts,
   subscriptions,
