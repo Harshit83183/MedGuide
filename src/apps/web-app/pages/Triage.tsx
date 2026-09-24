@@ -57,14 +57,15 @@ type Attachment = {
   kind: 'image' | 'audio' | 'doc';
 };
 
-type StoredTriage = {
-  text: string;
-  lang: string;
-  attachments: Attachment[];
-  provider?: string;
-  model?: string;
-  result: TriageResult;
-};
+  type StoredTriage = {
+    checkId?: string;
+    text: string;
+    lang: string;
+    attachments: Attachment[];
+    provider?: string;
+    model?: string;
+    result: TriageResult;
+  };
 
 const CONF: Record<
   TriageLevel,
@@ -232,7 +233,17 @@ export default function Triage({
         return;
       }
 
-      setTriageData(parsed);
+      const updated = {
+  ...parsed,
+  checkId: parsed.checkId || crypto.randomUUID()
+};
+
+sessionStorage.setItem(
+  'medguide_triage_result',
+  JSON.stringify(updated)
+);
+
+setTriageData(updated);
     } catch {
       setTriageData(null);
     } finally {
@@ -284,15 +295,13 @@ export default function Triage({
     setSaving(true);
     console.log('Saving symptom result to My Records...');
     api('/api/health-records', {
-      method: 'POST',
-      body: {
-        user_id: user.id,
-        title:
-          `AI Triage: ${result.urgency.toUpperCase()} — ` +
-          triageData.text.slice(
-            0,
-            60
-          ),
+  method: 'POST',
+  body: {
+    user_id: user.id,
+    check_id: triageData.checkId,
+    title:
+      `AI Triage: ${result.urgency.toUpperCase()} — ` +
+      triageData.text.slice(0, 60),
         issue:
           triageData.text,
         triage:

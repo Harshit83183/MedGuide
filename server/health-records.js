@@ -3,8 +3,14 @@ import supabase from './db-client.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, DELETE, OPTIONS'
+  );
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization'
+  );
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
@@ -28,13 +34,15 @@ export default async function handler(req, res) {
         .limit(200);
 
       if (req.query?.triage) {
-        query = query.eq('triage', String(req.query.triage));
+        query = query.eq(
+          'triage',
+          String(req.query.triage)
+        );
       }
 
       const { data, error } = await query;
 
       if (error) {
-        console.error('Records fetch failed:', error);
         return res.status(500).json({
           error: error.message,
           code: error.code
@@ -49,10 +57,21 @@ export default async function handler(req, res) {
 
       const userId = String(body.user_id || '').trim();
       const title = String(body.title || '').trim();
+      const source = String(body.source || 'manual');
+      const checkId = String(body.check_id || '').trim();
 
       if (!userId || !title) {
         return res.status(400).json({
           error: 'User ID and record title are required'
+        });
+      }
+
+      if (
+        source === 'ai-symptom-checker' &&
+        !checkId
+      ) {
+        return res.status(400).json({
+          error: 'Check ID is required for symptom records'
         });
       }
 
@@ -68,8 +87,38 @@ export default async function handler(req, res) {
         language: String(body.language || 'en'),
         advice: String(body.advice || ''),
         attachment_url: String(body.attachment_url || ''),
-        source: String(body.source || 'manual')
+        source
       };
+
+      if (source === 'ai-symptom-checker') {
+        const { data, error } = await supabase
+          .from('health_records')
+          .upsert(
+            {
+              ...record,
+              check_id: checkId
+            },
+            {
+              onConflict: 'user_id,check_id'
+            }
+          )
+          .select('*')
+          .single();
+
+        if (error) {
+          console.error('Triage record save failed:', error);
+
+          return res.status(500).json({
+            error: error.message,
+            code: error.code
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          record: data
+        });
+      }
 
       const { data, error } = await supabase
         .from('health_records')
@@ -78,16 +127,11 @@ export default async function handler(req, res) {
         .single();
 
       if (error) {
-        console.error('Record insert failed:', {
-          message: error.message,
-          code: error.code,
-          details: error.details
-        });
+        console.error('Record insert failed:', error);
 
         return res.status(500).json({
           error: error.message,
-          code: error.code,
-          details: error.details
+          code: error.code
         });
       }
 
@@ -119,7 +163,9 @@ export default async function handler(req, res) {
         });
       }
 
-      return res.status(200).json({ success: true });
+      return res.status(200).json({
+        success: true
+      });
     }
 
     return res.status(405).json({
@@ -129,9 +175,10 @@ export default async function handler(req, res) {
     console.error('Health records API:', error);
 
     return res.status(500).json({
-      error: error instanceof Error
-        ? error.message
-        : 'Unexpected server error'
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Unexpected server error'
     });
   }
 }
